@@ -32,8 +32,8 @@ export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
     if (doc) {
       // Use UTF-8 encoding and set Traditional Chinese as document language
       try {
-        // Fixed: Removed argument as it's not expected
-        doc.setLanguage();
+        // Fix: Pass a language code parameter as required by the function
+        doc.setLanguage('zh-TW');
       } catch (e) {
         console.warn('Could not set document language:', e);
       }
@@ -47,6 +47,7 @@ export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
       try {
         // Use simple approach for basic CJK support
         const fontFace = "'Noto Sans TC', sans-serif";
+        // Fix: Don't pass any arguments to setFont when using fontFace
         doc.setFont(fontFace);
         console.log('Set default font to Noto Sans TC');
         
