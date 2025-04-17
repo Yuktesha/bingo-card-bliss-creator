@@ -6,36 +6,55 @@ export function drawImageCellWithAlignment(
   { img, x, y, width, height, alignment = 'middle-center', padding = 0 }: ImageRenderOptions
 ): void {
   try {
-    const imgWidth = width - (padding * 2);
-    const imgHeight = height - (padding * 2);
+    // Calculate available space for image
+    const imgMaxWidth = width - (padding * 2);
+    const imgMaxHeight = height - (padding * 2);
     
+    // Calculate dimensions while preserving aspect ratio
     const imgRatio = img.width / img.height;
-    const cellRatio = imgWidth / imgHeight;
-    
     let drawWidth, drawHeight;
-    if (imgRatio > cellRatio) {
-      drawWidth = imgWidth;
-      drawHeight = imgWidth / imgRatio;
+    
+    if (imgRatio > 1) {
+      // Landscape image
+      drawWidth = Math.min(imgMaxWidth, img.width);
+      drawHeight = drawWidth / imgRatio;
+      
+      // If height exceeds available space, recalculate
+      if (drawHeight > imgMaxHeight) {
+        drawHeight = imgMaxHeight;
+        drawWidth = drawHeight * imgRatio;
+      }
     } else {
-      drawHeight = imgHeight;
-      drawWidth = imgHeight * imgRatio;
+      // Portrait or square image
+      drawHeight = Math.min(imgMaxHeight, img.height);
+      drawWidth = drawHeight * imgRatio;
+      
+      // If width exceeds available space, recalculate
+      if (drawWidth > imgMaxWidth) {
+        drawWidth = imgMaxWidth;
+        drawHeight = drawWidth / imgRatio;
+      }
     }
     
+    // Determine position based on alignment
     let drawX = x + padding;
     let drawY = y + padding;
     
-    if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
-      drawX = x + (width - drawWidth) / 2;
+    // Horizontal alignment
+    if (alignment.includes('center') && !alignment.includes('left') && !alignment.includes('right')) {
+      drawX += (imgMaxWidth - drawWidth) / 2;
     } else if (alignment.includes('right')) {
-      drawX = x + width - drawWidth - padding;
+      drawX += imgMaxWidth - drawWidth;
     }
     
-    if (alignment.includes('middle')) {
-      drawY = y + (height - drawHeight) / 2;
+    // Vertical alignment
+    if (alignment.includes('middle') && !alignment.includes('top') && !alignment.includes('bottom')) {
+      drawY += (imgMaxHeight - drawHeight) / 2;
     } else if (alignment.includes('bottom')) {
-      drawY = y + height - drawHeight - padding;
+      drawY += imgMaxHeight - drawHeight;
     }
     
+    // Draw the image
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   } catch (err) {
     console.error('Error drawing image:', err);

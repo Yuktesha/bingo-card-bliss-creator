@@ -31,9 +31,26 @@ async function renderTextCell(
   height: number,
   cellPadding: number
 ): Promise<void> {
-  doc.setFontSize(10);
+  // Detect if text contains CJK characters
+  const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(text);
+  
+  // Adjust font size for CJK text
+  const fontSize = hasCJK ? 8 : 10;
+  doc.setFontSize(fontSize);
   doc.setTextColor('#000000');
-  doc.setFont('sans-serif');
+  
+  // Use a different font stack for CJK content
+  if (hasCJK) {
+    try {
+      // Try to use a font with CJK support
+      doc.setFont('sans-serif');
+    } catch (e) {
+      console.warn('Failed to set CJK font, using default font instead');
+      doc.setFont('helvetica');
+    }
+  } else {
+    doc.setFont('helvetica');
+  }
   
   let textY = y + (height / 2);
   if (settings.table.contentAlignment.includes('top')) {
@@ -42,7 +59,9 @@ async function renderTextCell(
     textY = y + height - cellPadding - 3;
   }
   
-  const displayText = text.length > 15 ? text.substring(0, 15) + '...' : text;
+  // CJK text should have more characters displayed before truncation
+  const maxLength = hasCJK ? 6 : 15;
+  const displayText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   
   if (settings.table.contentAlignment.includes('center') && !settings.table.contentAlignment.includes('top') && !settings.table.contentAlignment.includes('bottom')) {
     doc.text(displayText, x + (width / 2), textY, { align: 'center' });
@@ -65,19 +84,67 @@ async function renderImageCell(
 ): Promise<void> {
   if (!item.image) return;
   
+  // Calculate the image dimensions while maintaining aspect ratio
   const imgX = x + padding;
   const imgY = y + padding;
-  const imgWidth = width - (2 * padding);
-  const imgHeight = height - (2 * padding);
+  const imgMaxWidth = width - (2 * padding);
+  const imgMaxHeight = height - (2 * padding);
   
-  doc.addImage(
-    item.image,
-    'PNG',
-    imgX,
-    imgY,
-    imgWidth,
-    imgHeight
-  );
+  try {
+    // Create an Image object to get the aspect ratio
+    const img = new Image();
+    img.src = item.image;
+    
+    // Calculate dimensions while preserving aspect ratio
+    let imgWidth, imgHeight;
+    const aspectRatio = img.width / img.height;
+    
+    if (aspectRatio > 1) {
+      // Landscape image
+      imgWidth = imgMaxWidth;
+      imgHeight = imgMaxWidth / aspectRatio;
+      
+      // If height is too large, recalculate
+      if (imgHeight > imgMaxHeight) {
+        imgHeight = imgMaxHeight;
+        imgWidth = imgHeight * aspectRatio;
+      }
+    } else {
+      // Portrait image
+      imgHeight = imgMaxHeight;
+      imgWidth = imgMaxHeight * aspectRatio;
+      
+      // If width is too large, recalculate
+      if (imgWidth > imgMaxWidth) {
+        imgWidth = imgMaxWidth;
+        imgHeight = imgWidth / aspectRatio;
+      }
+    }
+    
+    // Center the image in the cell
+    const offsetX = (imgMaxWidth - imgWidth) / 2;
+    const offsetY = (imgMaxHeight - imgHeight) / 2;
+    
+    doc.addImage(
+      item.image,
+      'PNG',
+      imgX + offsetX,
+      imgY + offsetY,
+      imgWidth,
+      imgHeight
+    );
+  } catch (error) {
+    console.error('Error rendering image in PDF:', error);
+    // Fallback to original method if the calculation fails
+    doc.addImage(
+      item.image,
+      'PNG',
+      imgX,
+      imgY,
+      imgMaxWidth,
+      imgMaxHeight
+    );
+  }
 }
 
 async function renderImageTextCell(
@@ -90,21 +157,111 @@ async function renderImageTextCell(
   height: number,
   padding: number
 ): Promise<void> {
-  if (item.image) {
-    await renderImageCell(doc, item, settings, x, y, width, height * 0.7, padding);
-  }
+  // Different layouts based on textImagePosition setting
+  const position = settings.table.textImagePosition || 'bottom';
   
-  doc.setFontSize(8);
-  doc.setTextColor('#000000');
-  
-  const textY = y + height - padding - 3;
-  const displayText = item.text.length > 12 ? item.text.substring(0, 12) + '...' : item.text;
-  
-  if (settings.table.contentAlignment.includes('center')) {
-    doc.text(displayText, x + (width / 2), textY, { align: 'center' });
-  } else if (settings.table.contentAlignment.includes('right')) {
-    doc.text(displayText, x + width - padding, textY, { align: 'right' });
+  if (position === 'bottom') {
+    // Image on top, text on bottom
+    const imageHeight = height * 0.7;
+    if (item.image) {
+      await renderImageCell(doc, item, settings, x, y, width, imageHeight, padding);
+    }
+    
+    // Detect if text contains CJK characters
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
+    
+    // Adjust font size for CJK text
+    const fontSize = hasCJK ? 6 : 8;
+    doc.setFontSize(fontSize);
+    doc.setTextColor('#000000');
+    
+    if (hasCJK) {
+      try {
+        doc.setFont('sans-serif');
+      } catch (e) {
+        doc.setFont('helvetica');
+      }
+    } else {
+      doc.setFont('helvetica');
+    }
+    
+    const textY = y + imageHeight + padding + 5;
+    const maxLength = hasCJK ? 5 : 12;
+    const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
+    
+    if (settings.table.contentAlignment.includes('center')) {
+      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
+    } else if (settings.table.contentAlignment.includes('right')) {
+      doc.text(displayText, x + width - padding, textY, { align: 'right' });
+    } else {
+      doc.text(displayText, x + padding, textY);
+    }
+  } else if (position === 'top') {
+    // Text on top, image on bottom
+    const textHeight = height * 0.3;
+    
+    // Detect if text contains CJK characters and render text
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
+    const fontSize = hasCJK ? 6 : 8;
+    doc.setFontSize(fontSize);
+    doc.setTextColor('#000000');
+    
+    if (hasCJK) {
+      try {
+        doc.setFont('sans-serif');
+      } catch (e) {
+        doc.setFont('helvetica');
+      }
+    } else {
+      doc.setFont('helvetica');
+    }
+    
+    const textY = y + padding + 5;
+    const maxLength = hasCJK ? 5 : 12;
+    const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
+    
+    if (settings.table.contentAlignment.includes('center')) {
+      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
+    } else if (settings.table.contentAlignment.includes('right')) {
+      doc.text(displayText, x + width - padding, textY, { align: 'right' });
+    } else {
+      doc.text(displayText, x + padding, textY);
+    }
+    
+    // Render image
+    if (item.image) {
+      await renderImageCell(doc, item, settings, x, y + textHeight, width, height - textHeight, padding);
+    }
   } else {
-    doc.text(displayText, x + padding, textY);
+    // Default center overlay
+    if (item.image) {
+      await renderImageCell(doc, item, settings, x, y, width, height, padding);
+    }
+    
+    // Add a semi-transparent background for text
+    doc.setFillColor(255, 255, 255, 0.7);
+    doc.rect(x + padding, y + (height/2) - 8, width - (2 * padding), 16, 'F');
+    
+    // Render text
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
+    const fontSize = hasCJK ? 6 : 8;
+    doc.setFontSize(fontSize);
+    doc.setTextColor('#000000');
+    
+    if (hasCJK) {
+      try {
+        doc.setFont('sans-serif');
+      } catch (e) {
+        doc.setFont('helvetica');
+      }
+    } else {
+      doc.setFont('helvetica');
+    }
+    
+    const textY = y + (height / 2);
+    const maxLength = hasCJK ? 5 : 12;
+    const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
+    
+    doc.text(displayText, x + (width / 2), textY, { align: 'center' });
   }
 }
