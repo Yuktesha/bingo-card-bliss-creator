@@ -115,7 +115,8 @@ export function renderFooterSection(
   }
   
   const footerHeight = settings.footer.height * scale;
-  const footerY = canvasHeight - (settings.margins.bottom * scale) - footerHeight;
+  // 將原本的const改為let以便後續可以修改
+  let footerY = canvasHeight - (settings.margins.bottom * scale) - footerHeight;
   
   // 頁尾背景
   ctx.fillStyle = settings.footer.backgroundColor || '#f0f0f0';
@@ -132,7 +133,8 @@ export function renderFooterSection(
   
   // 應用頁尾對齊
   const alignment = settings.footer.alignment;
-  let footerX, footerY;
+  let footerX;
+  // 移除這裡的footerY重新宣告，因為我們已經在上面宣告為let
   
   // 水平對齊
   if (alignment.includes('left')) {
