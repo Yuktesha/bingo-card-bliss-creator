@@ -4,34 +4,7 @@ import { drawTextCellWithAlignment, drawVerticalText } from "./rendering/textRen
 import { drawImageCellWithAlignment } from "./rendering/imageRenderer";
 import { setupCanvas } from "./rendering/canvasSetup";
 import { renderTitleSection, renderFooterSection } from "./rendering/layoutRenderer";
-import { RenderingContext } from "./rendering/types";
-
-// Function to load images for the bingo card
-async function loadCardImages(items: BingoCardItem[]): Promise<Map<string, HTMLImageElement>> {
-  const imageMap = new Map<string, HTMLImageElement>();
-  const imagePromises: Promise<void>[] = [];
-
-  items.forEach(item => {
-    if (item.image) {
-      const promise = new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          imageMap.set(item.id, img);
-          resolve();
-        };
-        img.onerror = () => {
-          console.warn(`Failed to load image for item: ${item.text}`);
-          resolve(); // Resolve anyway to continue processing
-        };
-        img.src = item.image;
-      });
-      imagePromises.push(promise);
-    }
-  });
-
-  await Promise.all(imagePromises);
-  return imageMap;
-}
+import { loadCardImages } from "./rendering/imageLoader";
 
 export async function renderBingoCardPreview(
   items: BingoCardItem[],
@@ -48,7 +21,6 @@ export async function renderBingoCardPreview(
     throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
   }
   
-  // Generate card items based on index
   let cardItems: BingoCardItem[];
   if (cardIndex > 0) {
     const cards = generateBingoCards(items, settings, cardIndex + 1);
@@ -58,23 +30,18 @@ export async function renderBingoCardPreview(
     cardItems = cards[0];
   }
   
-  // Setup canvas with proper DPI
   const { canvas, ctx, scale } = setupCanvas(settings, dpi);
   
-  // Calculate margins and dimensions
   const marginTop = settings.margins.top * scale;
   const marginRight = settings.margins.right * scale;
   const marginBottom = settings.margins.bottom * scale;
   const marginLeft = settings.margins.left * scale;
   const availableWidth = canvas.width - marginLeft - marginRight;
   
-  // Start drawing from top margin
   let currentY = marginTop;
   
-  // Render title if enabled
   currentY = renderTitleSection(ctx, settings, scale, currentY, availableWidth);
   
-  // Calculate table dimensions
   const footerHeight = settings.footer.show ? settings.footer.height * scale : 0;
   const footerSpacing = settings.footer.show ? settings.sectionSpacing * scale : 0;
   const tableHeight = canvas.height - currentY - marginBottom - footerHeight - footerSpacing;
@@ -82,7 +49,6 @@ export async function renderBingoCardPreview(
   const cellWidth = availableWidth / settings.table.columns;
   const cellHeight = tableHeight / settings.table.rows;
   
-  // Setup table border style
   ctx.strokeStyle = settings.table.borderColor;
   ctx.lineWidth = settings.table.borderWidth * scale;
   
@@ -98,7 +64,6 @@ export async function renderBingoCardPreview(
     const imageMap = await loadCardImages(cardItems);
     let itemIndex = 0;
     
-    // Draw all cells with borders
     for (let row = 0; row < settings.table.rows; row++) {
       for (let col = 0; col < settings.table.columns; col++) {
         const x = marginLeft + (col * cellWidth);
