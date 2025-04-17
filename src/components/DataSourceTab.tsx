@@ -3,6 +3,7 @@ import React from 'react';
 import { ToolbarActions } from './data-source/ToolbarActions';
 import { ItemsTable } from './data-source/ItemsTable';
 import { ItemPreview } from './data-source/ItemPreview';
+import { BingoProvider } from '@/contexts/BingoContext';
 
 const DataSourceTab: React.FC = () => {
   return (

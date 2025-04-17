@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { getFileNameFromPath, generateId, shuffleArray } from '@/utils/fileUtils';
@@ -168,7 +167,7 @@ export const BingoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const shuffleItems = () => {
-    setItems(prev => shuffleArray(prev));
+    setItems(prev => shuffleArray([...prev]));
   };
 
   const value = {
