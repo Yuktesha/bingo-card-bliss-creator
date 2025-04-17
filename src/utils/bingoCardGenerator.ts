@@ -1,3 +1,4 @@
+
 import { BingoCardItem, BingoCardSettings } from "@/types";
 import { shuffleArray } from "./fileUtils";
 
@@ -40,11 +41,37 @@ export function generateBingoCards(
 
 /**
  * Creates a visual representation of a bingo card (for preview purposes)
+ * @param items Array of bingo card items
+ * @param settings Bingo card settings
+ * @param cardIndex Optional index to generate a specific card (for PDF generation)
  */
 export function renderBingoCardPreview(
   items: BingoCardItem[],
-  settings: BingoCardSettings
+  settings: BingoCardSettings,
+  cardIndex: number = 0
 ): HTMLCanvasElement {
+  // Filter selected items
+  const selectedItems = items.filter(item => item.selected);
+  
+  // Check if we have enough items
+  const cellsPerCard = settings.table.rows * settings.table.columns;
+  if (selectedItems.length < cellsPerCard) {
+    throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
+  }
+  
+  // Generate a specific card based on cardIndex
+  let cardItems: BingoCardItem[];
+  
+  // If we're generating multiple cards, shuffle items differently for each card
+  if (cardIndex > 0) {
+    // Generate all cards and take the one at cardIndex
+    const cards = generateBingoCards(items, settings, cardIndex + 1);
+    cardItems = cards[cardIndex];
+  } else {
+    // For the preview, just take the first N items
+    cardItems = shuffleArray([...selectedItems]).slice(0, cellsPerCard);
+  }
+  
   // Create a canvas element
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -109,12 +136,11 @@ export function renderBingoCardPreview(
   ctx.strokeStyle = settings.table.borderColor;
   ctx.lineWidth = settings.table.borderWidth * scale;
   
-  const selectedItems = items.filter(item => item.selected);
   let itemIndex = 0;
   
   // Preload images to ensure they're available when drawing
   const loadImages = async () => {
-    const imagePromises = selectedItems
+    const imagePromises = cardItems
       .filter(item => item.image)
       .map(item => {
         return new Promise<{id: string, img: HTMLImageElement}>((resolve, reject) => {
@@ -158,8 +184,8 @@ export function renderBingoCardPreview(
         }
         
         // Draw cell content if we have enough items
-        if (itemIndex < selectedItems.length) {
-          const item = selectedItems[itemIndex++];
+        if (itemIndex < cardItems.length) {
+          const item = cardItems[itemIndex++];
           
           const contentPadding = {
             top: settings.table.cellPadding.top * scale,
@@ -235,7 +261,7 @@ export function renderBingoCardPreview(
                 console.error('Error drawing image:', err);
                 // If image fails to draw, fill with placeholder color
                 ctx.fillStyle = '#e0e0e0';
-                ctx.fillRect(imgX, imgY, imgWidth, imgHeight);
+                ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
               }
             } else {
               // Placeholder for missing images
@@ -371,3 +397,4 @@ export async function renderBingoCardPreviewAsync(
     }
   });
 }
+

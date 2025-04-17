@@ -22,7 +22,8 @@ import {
   AlignLeft, 
   AlignRight, 
   AlignJustify,
-  Shuffle
+  Shuffle,
+  Loader2
 } from 'lucide-react';
 
 const CardPreview: React.FC = () => {
@@ -34,10 +35,7 @@ const CardPreview: React.FC = () => {
   const refreshPreview = async () => {
     setIsLoading(true);
     try {
-      // Use the canvas element to create a data URL
       const canvas = renderBingoCardPreview(items, settings);
-      
-      // Convert canvas to data URL
       setTimeout(() => {
         try {
           const dataUrl = canvas.toDataURL('image/png');
@@ -59,14 +57,13 @@ const CardPreview: React.FC = () => {
       setPreviewSrc(null);
       toast({
         title: '預覽生成失敗',
-        description: '無法載入圖片或生成預覽',
+        description: '無法載入圖片或生成預览',
         variant: 'destructive'
       });
       setIsLoading(false);
     }
   };
   
-  // Generate preview using the bingo card generator
   useEffect(() => {
     refreshPreview();
   }, [settings, items]);
@@ -157,6 +154,8 @@ const AlignmentSelector: React.FC<{
 
 const CardSettingsTab: React.FC = () => {
   const { settings, setSettings, items, shuffleItems } = useBingo();
+  const { toast } = useToast();
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   const handleUnitChange = (newUnit: Unit) => {
     const oldUnit = settings.unit;
@@ -218,7 +217,6 @@ const CardSettingsTab: React.FC = () => {
       return;
     }
     
-    // Swap dimensions for standard paper sizes
     setSettings(prev => ({
       ...prev,
       orientation: newOrientation,
@@ -261,35 +259,36 @@ const CardSettingsTab: React.FC = () => {
     }
   };
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     const selectedItems = items.filter(item => item.selected);
     if (selectedItems.length === 0) {
-      alert('請先選擇至少一個項目');
+      toast({
+        title: '無法生成 PDF',
+        description: '請先選擇至少一個項目',
+        variant: 'destructive'
+      });
       return;
     }
     
     const cellsPerCard = settings.table.rows * settings.table.columns;
     if (selectedItems.length < cellsPerCard) {
-      alert(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
+      toast({
+        title: '無法生成 PDF',
+        description: `需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`,
+        variant: 'destructive'
+      });
       return;
     }
     
     try {
-      // Generate unique bingo cards
-      const cards = generateBingoCards(
+      setIsGeneratingPDF(true);
+      
+      const pdfBlob = generateBingoCardPDF(
         items,
         settings,
         settings.export.numberOfCards
       );
       
-      // In a real app, this would generate a PDF file with all cards
-      const pdfBlob = generateBingoCardPDF(
-        selectedItems,
-        settings,
-        settings.export.numberOfCards
-      );
-      
-      // Create a download link
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -299,12 +298,21 @@ const CardSettingsTab: React.FC = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
+      toast({
+        title: 'PDF 生成成功',
+        description: `已建立包含 ${settings.export.numberOfCards} 個賓果卡的 PDF`,
+      });
+      
     } catch (error) {
-      if (error instanceof Error) {
-        alert(error.message);
-      } else {
-        alert('生成 PDF 時發生錯誤');
-      }
+      console.error('PDF generation error:', error);
+      
+      toast({
+        title: '生成 PDF 失敗',
+        description: error instanceof Error ? error.message : '發生未知錯誤',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -505,7 +513,7 @@ const CardSettingsTab: React.FC = () => {
               
               <Tabs defaultValue="title">
                 <TabsList className="w-full">
-                  <TabsTrigger value="title" className="flex-1">標題區</TabsTrigger>
+                  <TabsTrigger value="title" className="flex-1">標���區</TabsTrigger>
                   <TabsTrigger value="table" className="flex-1">表格區</TabsTrigger>
                   <TabsTrigger value="footer" className="flex-1">頁尾區</TabsTrigger>
                 </TabsList>
@@ -1008,10 +1016,20 @@ const CardSettingsTab: React.FC = () => {
                 
                 <Button 
                   onClick={handleGeneratePDF} 
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center justify-center gap-2"
+                  disabled={isGeneratingPDF}
                 >
-                  <Download size={16} />
-                  產生PDF
+                  {isGeneratingPDF ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={16} />
+                      產生PDF
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

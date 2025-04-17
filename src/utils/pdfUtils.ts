@@ -1,6 +1,8 @@
 
 // Utilities for PDF generation
-// This is a placeholder for actual PDF generation logic
+import jsPDF from 'jspdf';
+import { BingoCardItem, BingoCardSettings } from '@/types';
+import { renderBingoCardPreview } from './bingoCardGenerator';
 
 /**
  * Calculates dimensions in points based on unit and value
@@ -70,32 +72,102 @@ export function getPaperSizeDimensions(
 }
 
 /**
- * Placeholder for PDF generation function
+ * Creates a PDF with bingo cards
  */
 export function generateBingoCardPDF(
-  items: any[],
-  settings: any,
+  items: BingoCardItem[],
+  settings: BingoCardSettings,
   numberOfCards: number
 ): Blob {
-  // This would be implemented with a PDF library like jspdf or pdfmake
-  console.log('Generating PDF with', numberOfCards, 'cards');
+  // Filter selected items
+  const selectedItems = items.filter(item => item.selected);
+  const cellsPerCard = settings.table.rows * settings.table.columns;
   
-  // For demo purposes, create a more detailed "placeholder" that shows settings
-  const pdfContent = `
-    Bingo Card Generator PDF Export
-    ------------------------------
-    
-    Title: ${settings.title.text}
-    Card size: ${settings.width} x ${settings.height} ${settings.unit}
-    Grid: ${settings.table.rows} rows x ${settings.table.columns} columns
-    Number of cards: ${numberOfCards}
-    
-    Content type: ${settings.table.contentType}
-    Number of items: ${items.length}
-    
-    This is a placeholder for actual PDF generation.
-    In a production app, this would create a real PDF file with the bingo cards.
-  `;
+  if (selectedItems.length < cellsPerCard) {
+    throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
+  }
   
-  return new Blob([pdfContent], { type: 'application/pdf' });
+  // Create a new PDF document
+  const doc = new jsPDF({
+    orientation: settings.orientation,
+    unit: settings.unit,
+    format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
+  });
+  
+  // Define margins
+  const margin = {
+    top: settings.margins.top,
+    right: settings.margins.right,
+    bottom: settings.margins.bottom,
+    left: settings.margins.left
+  };
+  
+  // Generate multiple cards
+  for (let cardIndex = 0; cardIndex < numberOfCards; cardIndex++) {
+    if (cardIndex > 0) {
+      // Add a new page for each additional card
+      doc.addPage();
+    }
+    
+    try {
+      // Render the bingo card
+      const canvas = renderBingoCardPreview(selectedItems, settings, cardIndex);
+      
+      // Convert canvas to an image
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Calculate the printable area
+      const printableWidth = settings.width - margin.left - margin.right;
+      const printableHeight = settings.height - margin.top - margin.bottom;
+      
+      // Add the image to the PDF
+      doc.addImage(
+        imgData, 
+        'PNG', 
+        margin.left, 
+        margin.top, 
+        printableWidth, 
+        printableHeight
+      );
+      
+    } catch (error) {
+      console.error(`Failed to render card ${cardIndex + 1}:`, error);
+      // Add error text instead of image
+      doc.setFontSize(12);
+      doc.text(`Failed to render card ${cardIndex + 1}. Error: ${error.message}`, margin.left, margin.top + 10);
+    }
+  }
+  
+  // Return the PDF as a blob
+  return doc.output('blob');
 }
+
+/**
+ * Creates a PDF with bingo cards, with additional options for advanced customization
+ */
+export async function generateBingoCardPDFAsync(
+  items: BingoCardItem[],
+  settings: BingoCardSettings,
+  numberOfCards: number,
+  options?: {
+    onProgress?: (current: number, total: number) => void;
+    cardsPerPage?: number;
+    includeInstructions?: boolean;
+  }
+): Promise<Blob> {
+  // Default options
+  const opts = {
+    onProgress: (current: number, total: number) => {},
+    cardsPerPage: 1,
+    includeInstructions: false,
+    ...options
+  };
+  
+  try {
+    return generateBingoCardPDF(items, settings, numberOfCards);
+  } catch (error) {
+    console.error('PDF generation failed:', error);
+    throw error;
+  }
+}
+
