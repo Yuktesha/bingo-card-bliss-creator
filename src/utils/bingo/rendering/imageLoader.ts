@@ -18,7 +18,7 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
   itemsWithImages.forEach(item => {
     if (!item.image) return;
     
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = new Promise<void>((resolve) => {
       const img = new Image();
       
       img.onload = () => {
@@ -27,12 +27,12 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
         resolve();
       };
       
-      img.onerror = (e) => {
-        console.warn(`Failed to load image for item: ${item.text}`, e);
-        resolve(); // 解決以繼續處理
+      img.onerror = () => {
+        console.warn(`Failed to load image for item: ${item.text}`);
+        resolve(); // Resolve anyway to continue processing
       };
       
-      // 增加跨域支持
+      // Add cross-origin support
       img.crossOrigin = 'anonymous';
       img.src = item.image;
     });
@@ -40,7 +40,12 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
     imagePromises.push(promise);
   });
 
-  await Promise.all(imagePromises);
-  console.log(`Successfully loaded ${imageMap.size} of ${itemsWithImages.length} images`);
-  return imageMap;
+  try {
+    await Promise.all(imagePromises);
+    console.log(`Successfully loaded ${imageMap.size} of ${itemsWithImages.length} images`);
+    return imageMap;
+  } catch (error) {
+    console.error('Error loading images:', error);
+    return imageMap; // Return what we've got even if there was an error
+  }
 }
