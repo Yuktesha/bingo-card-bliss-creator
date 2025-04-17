@@ -1,7 +1,7 @@
 // Utilities for PDF generation
 import jsPDF from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
-import { renderBingoCardPreview } from './bingo';
+import { renderBingoCardPreview, generateBingoCards } from './bingo';
 
 /**
  * Calculates dimensions in points based on unit and value
@@ -147,23 +147,19 @@ export async function generateBingoCardPDF(
         let titleX = margin.left;
         if (settings.title.alignment.includes('center')) {
           titleX = margin.left + (availableWidth / 2);
-          doc.setTextAlign('center');
+          doc.text(settings.title.text, titleX, currentY + (titleHeight / 2), { align: 'center' });
         } else if (settings.title.alignment.includes('right')) {
           titleX = margin.left + availableWidth;
-          doc.setTextAlign('right');
+          doc.text(settings.title.text, titleX, currentY + (titleHeight / 2), { align: 'right' });
         } else {
-          doc.setTextAlign('left');
+          doc.text(settings.title.text, titleX, currentY + (titleHeight / 2));
         }
-        
-        // Calculate y position for text
-        const textY = currentY + (titleHeight / 2);
-        doc.text(settings.title.text, titleX, textY);
         
         currentY += titleHeight + settings.sectionSpacing;
       }
       
       // 2. Draw table
-      const tableHeight = settings.height - currentY - margin.bottom;
+      let tableHeight = settings.height - currentY - margin.bottom;
       if (settings.footer.show) {
         tableHeight -= (settings.footer.height + settings.sectionSpacing);
       }
@@ -172,7 +168,7 @@ export async function generateBingoCardPDF(
       const cellHeight = tableHeight / settings.table.rows;
       
       // Generate the card's content
-      const cards = generateBingoCards(selectedItems, settings, 1, cardIndex);
+      const cards = generateBingoCards(selectedItems, settings, 1);
       const cardItems = cards[0];
       
       // Set up for table drawing
@@ -188,15 +184,8 @@ export async function generateBingoCardPDF(
           
           // Draw cell border
           if (settings.table.borderWidth > 0) {
-            // Apply border style
-            if (settings.table.borderStyle === 'dashed') {
-              doc.setLineDash([3, 2]);
-            } else if (settings.table.borderStyle === 'dotted') {
-              doc.setLineDash([1, 1]);
-            } else {
-              doc.setLineDash([]);
-            }
-            
+            // Apply border style - jsPDF doesn't support setLineDash natively
+            // We'll use basic borders for now and can implement custom styles if needed
             doc.rect(x, y, cellWidth, cellHeight, 'S');
           }
           
@@ -208,16 +197,6 @@ export async function generateBingoCardPDF(
             const alignment = settings.table.contentAlignment;
             let contentX = x + cellPadding;
             let contentWidth = cellWidth - (2 * cellPadding);
-            
-            if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
-              contentX = x + (cellWidth / 2);
-              doc.setTextAlign('center');
-            } else if (alignment.includes('right')) {
-              contentX = x + cellWidth - cellPadding;
-              doc.setTextAlign('right');
-            } else {
-              doc.setTextAlign('left');
-            }
             
             // Different content rendering based on settings
             if (settings.table.contentType === 'text-only') {
@@ -235,7 +214,14 @@ export async function generateBingoCardPDF(
               
               // Truncate text if too long
               const displayText = item.text.length > 15 ? item.text.substring(0, 15) + '...' : item.text;
-              doc.text(displayText, contentX, textY);
+              
+              if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
+                doc.text(displayText, x + (cellWidth / 2), textY, { align: 'center' });
+              } else if (alignment.includes('right')) {
+                doc.text(displayText, x + cellWidth - cellPadding, textY, { align: 'right' });
+              } else {
+                doc.text(displayText, contentX, textY);
+              }
             }
             else if (settings.table.contentType === 'image-only' || settings.table.contentType === 'image-text') {
               // For image content, we need to use the canvas rendering and crop just that cell
@@ -331,9 +317,6 @@ export async function generateBingoCardPDF(
         }
       }
       
-      // Reset dash pattern
-      doc.setLineDash([]);
-      
       // 3. Draw footer if enabled
       if (settings.footer.show) {
         const footerHeight = settings.footer.height;
@@ -353,17 +336,13 @@ export async function generateBingoCardPDF(
         let footerX = margin.left;
         if (settings.footer.alignment.includes('center')) {
           footerX = margin.left + (availableWidth / 2);
-          doc.setTextAlign('center');
+          doc.text(settings.footer.text, footerX, footerY + (footerHeight / 2), { align: 'center' });
         } else if (settings.footer.alignment.includes('right')) {
           footerX = margin.left + availableWidth;
-          doc.setTextAlign('right');
+          doc.text(settings.footer.text, footerX, footerY + (footerHeight / 2), { align: 'right' });
         } else {
-          doc.setTextAlign('left');
+          doc.text(settings.footer.text, footerX, footerY + (footerHeight / 2));
         }
-        
-        // Calculate y position for text
-        const textY = footerY + (footerHeight / 2);
-        doc.text(settings.footer.text, footerX, textY);
       }
       
       console.log(`Card ${cardIndex + 1} generated successfully with vector graphics`);
