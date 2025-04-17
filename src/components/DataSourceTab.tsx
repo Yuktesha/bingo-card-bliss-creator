@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BingoCardItem } from '@/types';
 import { useBingo } from '@/contexts/BingoContext';
-import { getFileNameFromPath, shuffleArray } from '@/utils/fileUtils';
+import { getFileNameFromPath, shuffleArray, processFiles, parseSpreadsheet } from '@/utils/fileUtils';
 import { simulateFolderSelection, simulateSpreadsheetImport } from '@/utils/mockData';
 import { exportToODS, exportToCSV } from '@/utils/exportImportUtils';
 import { 
@@ -20,6 +20,7 @@ import {
   Download,
   FileDown 
 } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 const DataSourceTab: React.FC = () => {
   const {
@@ -41,31 +42,44 @@ const DataSourceTab: React.FC = () => {
 
   // Handle folder selection
   const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // For demo purposes, we'll use mock data instead of actual file reading
-    // since browser security would require special server setup for folder access
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
-    // In a real app, we would process the files from e.target.files
-    // For now, we'll simulate folder selection with mock data
-    const mockItems = simulateFolderSelection();
-    setItems(prev => [...prev, ...mockItems]);
+    // Process the selected files
+    const newItems = processFiles(files);
+    
+    if (newItems.length > 0) {
+      setItems(prev => [...prev, ...newItems]);
+      toast.success(`已成功導入 ${newItems.length} 個檔案`);
+    } else {
+      toast.warning('未找到支援的圖片格式檔案');
+    }
 
     // Reset input
     if (folderInputRef.current) folderInputRef.current.value = '';
   };
 
   // Handle spreadsheet upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    // For demo purposes, use mock data instead of actual file parsing
-    // In a real app, we would use a library to parse ODS/spreadsheet files
-    
-    // Simulate file reading
-    setTimeout(() => {
-      const mockItems = simulateSpreadsheetImport();
-      setItems(prev => [...prev, ...mockItems]);
-    }, 500);
+    const file = files[0];
+    try {
+      // In a real implementation, we would use a proper library to parse spreadsheet files
+      // For now, we'll just use a mock implementation
+      const data = await parseSpreadsheet(file);
+      
+      if (data.length > 0) {
+        setItems(prev => [...prev, ...data]);
+        toast.success(`已成功導入試算表，包含 ${data.length} 筆資料`);
+      } else {
+        toast.warning('試算表中無有效資料');
+      }
+    } catch (error) {
+      console.error('Error parsing spreadsheet:', error);
+      toast.error('試算表解析失敗，請確認檔案格式');
+    }
 
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -100,6 +114,27 @@ const DataSourceTab: React.FC = () => {
     setSelectedItem(selectedItem?.id === item.id ? null : item);
   };
 
+  // Export data
+  const handleExportData = () => {
+    try {
+      // Export to JSON format for now
+      const blob = exportToODS(items);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bingo-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('資料匯出成功');
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('資料匯出失敗');
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-4 h-full">
       <div className="flex space-x-4 mb-4">
@@ -109,7 +144,6 @@ const DataSourceTab: React.FC = () => {
             ref={folderInputRef}
             onChange={handleFolderSelect}
             className="hidden"
-            // TypeScript doesn't have these attributes defined, using them as custom attributes
             {...{ webkitdirectory: "", directory: "" } as any}
             multiple
           />
@@ -128,7 +162,7 @@ const DataSourceTab: React.FC = () => {
             ref={fileInputRef}
             onChange={handleFileUpload}
             className="hidden"
-            accept=".ods,.xlsx,.csv"
+            accept=".ods,.xlsx,.csv,.json"
           />
           <Button 
             onClick={() => fileInputRef.current?.click()}
@@ -157,18 +191,7 @@ const DataSourceTab: React.FC = () => {
         <Button 
           variant="outline" 
           className="flex items-center gap-2"
-          onClick={() => {
-            // Export to ODS (simulated)
-            const blob = exportToODS(items);
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `bingo-data-${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }}
+          onClick={handleExportData}
         >
           <FileDown size={16} />
           匯出資料

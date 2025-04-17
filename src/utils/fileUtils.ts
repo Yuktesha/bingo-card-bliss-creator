@@ -34,8 +34,51 @@ export function generateId(): string {
  * Parse ODS or other spreadsheet format (placeholder)
  */
 export function parseSpreadsheet(file: File): Promise<any[]> {
-  // Placeholder for spreadsheet parsing logic
-  return Promise.resolve([]);
+  return new Promise((resolve) => {
+    // For browser environment, simulating file reading
+    const reader = new FileReader();
+    reader.onload = () => {
+      // In a real implementation, we would parse the file content
+      // For now, we'll just return mock data based on the file name
+      const mockData = [];
+      for (let i = 0; i < 10; i++) {
+        mockData.push({
+          id: generateId(),
+          text: `${file.name} - Item ${i + 1}`,
+          image: i % 2 === 0 ? `https://picsum.photos/id/${i + 50}/200/200` : '',
+          selected: true,
+        });
+      }
+      resolve(mockData);
+    };
+    
+    // Start reading the file as text
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Process files from a folder selection
+ */
+export function processFiles(files: FileList): any[] {
+  const result = [];
+  const supportedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (supportedImageTypes.includes(file.type)) {
+      const imageUrl = URL.createObjectURL(file);
+      result.push({
+        id: generateId(),
+        text: getFileNameFromPath(file.name),
+        image: imageUrl,
+        selected: true,
+        fileCheck: true,
+      });
+    }
+  }
+  
+  return result;
 }
 
 /**

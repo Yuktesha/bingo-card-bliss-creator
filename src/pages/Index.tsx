@@ -1,11 +1,20 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BingoProvider } from '@/contexts/BingoContext';
 import DataSourceTab from '@/components/DataSourceTab';
 import CardSettingsTab from '@/components/CardSettingsTab';
+import { toast } from '@/components/ui/sonner';
 
 const Index = () => {
+  useEffect(() => {
+    // Display a welcome toast when the app loads
+    toast.info('歡迎使用賓果遊戲卡產生器', {
+      description: '先選擇「資料來源」，然後配置「遊戲卡設定」',
+      duration: 5000,
+    });
+  }, []);
+
   return (
     <BingoProvider>
       <div className="min-h-screen flex flex-col bg-gray-50">
