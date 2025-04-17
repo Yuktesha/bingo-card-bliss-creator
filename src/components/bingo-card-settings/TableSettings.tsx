@@ -8,11 +8,12 @@ import { useBingo } from '@/contexts/BingoContext';
 import { BorderStyle, TextImagePosition } from '@/types';
 import AlignmentSelector from './AlignmentSelector';
 import { Shuffle } from 'lucide-react';
+import { ColorPicker } from "@/components/ui/color-picker";
 
 const TableSettings: React.FC = () => {
   const { settings, setSettings, shuffleItems } = useBingo();
 
-  // Calculate table dimensions
+  // 計算表格尺寸
   const tableHeight = settings.height - 
                       settings.margins.top - 
                       settings.margins.bottom - 
@@ -22,6 +23,21 @@ const TableSettings: React.FC = () => {
   const tableWidth = settings.width - 
                       settings.margins.left - 
                       settings.margins.right;
+
+  // 處理框線粗細變更，確保能接受任何合法的數值
+  const handleBorderWidthChange = (value: string) => {
+    const numValue = parseFloat(value);
+    // 只有當值是有效數字且大於或等於0.1時才更新
+    if (!isNaN(numValue) && numValue >= 0.1) {
+      setSettings(prev => ({
+        ...prev,
+        table: {
+          ...prev.table,
+          borderWidth: numValue
+        }
+      }));
+    }
+  };
 
   return (
     <div className="space-y-4 pt-4">
@@ -80,13 +96,7 @@ const TableSettings: React.FC = () => {
         <Input
           type="number"
           value={settings.table.borderWidth}
-          onChange={e => setSettings(prev => ({
-            ...prev,
-            table: {
-              ...prev.table,
-              borderWidth: parseFloat(e.target.value) || 0.1
-            }
-          }))}
+          onChange={e => handleBorderWidthChange(e.target.value)}
           min={0.1}
           step={0.1}
         />
@@ -94,23 +104,16 @@ const TableSettings: React.FC = () => {
       
       <div className="space-y-2">
         <Label>框線顏色</Label>
-        <div className="flex gap-2">
-          <div 
-            className="w-8 h-8 border rounded" 
-            style={{ backgroundColor: settings.table.borderColor }}
-          />
-          <Input
-            type="color"
-            value={settings.table.borderColor}
-            onChange={e => setSettings(prev => ({
-              ...prev,
-              table: {
-                ...prev.table,
-                borderColor: e.target.value
-              }
-            }))}
-          />
-        </div>
+        <ColorPicker
+          value={settings.table.borderColor}
+          onChange={value => setSettings(prev => ({
+            ...prev,
+            table: {
+              ...prev.table,
+              borderColor: value
+            }
+          }))}
+        />
       </div>
       
       <div className="space-y-2">
@@ -178,8 +181,8 @@ const TableSettings: React.FC = () => {
             <SelectContent>
               <SelectItem value="top">上方</SelectItem>
               <SelectItem value="bottom">下方</SelectItem>
-              <SelectItem value="left">左方</SelectItem>
-              <SelectItem value="right">右方</SelectItem>
+              <SelectItem value="left">左方(直排)</SelectItem>
+              <SelectItem value="right">右方(直排)</SelectItem>
               <SelectItem value="center">中心</SelectItem>
             </SelectContent>
           </Select>
