@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
-import { Download, Loader2, Check } from 'lucide-react';
+import { Download, Loader2, Check, RefreshCw } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { loadPDFFonts } from '@/utils/bingo';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -19,7 +19,7 @@ const ExportSettings: React.FC = () => {
   const [isFontLoaded, setIsFontLoaded] = useState(false);
   const [fontLoadingStatus, setFontLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   
-  // Preload Asian fonts when component mounts
+  // 預先載入亞洲字體，確保正確顯示中文
   useEffect(() => {
     const preloadFonts = async () => {
       try {
@@ -36,6 +36,30 @@ const ExportSettings: React.FC = () => {
     
     preloadFonts();
   }, []);
+
+  // 手動重新載入字體的功能
+  const handleReloadFont = async () => {
+    try {
+      setFontLoadingStatus('loading');
+      const loaded = await loadPDFFonts();
+      setIsFontLoaded(loaded);
+      setFontLoadingStatus(loaded ? 'success' : 'error');
+      
+      toast({
+        title: loaded ? '字體載入成功' : '字體載入失敗',
+        description: loaded ? '亞洲字體已成功載入，PDF中將可正確顯示中文' : '無法載入亞洲字體，請檢查網路連接',
+        variant: loaded ? 'default' : 'destructive'
+      });
+    } catch (error) {
+      console.error('Font reload failed:', error);
+      setFontLoadingStatus('error');
+      toast({
+        title: '字體載入失敗',
+        description: '發生錯誤，請稍後再試',
+        variant: 'destructive'
+      });
+    }
+  };
   
   const handleGeneratePDF = async () => {
     const selectedItems = items.filter(item => item.selected);
@@ -61,11 +85,12 @@ const ExportSettings: React.FC = () => {
     try {
       setIsGeneratingPDF(true);
       
-      // If the font wasn't preloaded, attempt to load it before generating PDF
+      // 再次確保字體已加載，即使預加載失敗
       if (!isFontLoaded) {
         await loadPDFFonts();
       }
       
+      // 生成PDF並下載
       const pdfBlob = await generateBingoCardPDFAsync(
         items,
         settings,
@@ -117,8 +142,17 @@ const ExportSettings: React.FC = () => {
         {fontLoadingStatus === 'error' && (
           <Alert variant="destructive">
             <AlertTitle>字體載入失敗</AlertTitle>
-            <AlertDescription>
-              未能成功載入亞洲字體。PDF中的中文可能無法正確顯示。
+            <AlertDescription className="flex flex-col gap-2">
+              <div>未能成功載入亞洲字體。PDF中的中文可能無法正確顯示。</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReloadFont}
+                className="flex items-center gap-1 self-start"
+              >
+                <RefreshCw size={14} />
+                重新嘗試載入
+              </Button>
             </AlertDescription>
           </Alert>
         )}

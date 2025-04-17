@@ -1,4 +1,4 @@
-// Utilities for PDF generation
+// 實用程序，用於 PDF 生成
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { renderBingoCardPreview, renderBingoCardPreviewAsync, loadPDFFonts } from './bingo';
@@ -48,7 +48,7 @@ export function convertUnits(
 }
 
 /**
- * Gets standard paper size dimensions in mm
+ * 獲取標準紙張尺寸（以毫米為單位）
  */
 export function getPaperSizeDimensions(
   size: string, 
@@ -72,14 +72,14 @@ export function getPaperSizeDimensions(
 }
 
 /**
- * Creates a PDF with bingo cards using vector graphics where possible
+ * 創建包含賓果卡的 PDF，盡可能使用向量圖形
  */
 export async function generateBingoCardPDF(
   items: BingoCardItem[],
   settings: BingoCardSettings,
   numberOfCards: number
 ): Promise<Blob> {
-  // Filter selected items
+  // 過濾已選擇的項目
   const selectedItems = items.filter(item => item.selected);
   const cellsPerCard = settings.table.rows * settings.table.columns;
   
@@ -91,23 +91,34 @@ export async function generateBingoCardPDF(
   console.log('PDF Generation - Items count:', selectedItems.length);
   console.log('PDF Generation - Cards to generate:', numberOfCards);
   
-  // Preload Asian fonts
-  await loadPDFFonts();
+  // 確保亞洲字體已預先載入
+  try {
+    await loadPDFFonts();
+    console.log('PDF fonts loaded for PDF generation');
+  } catch (error) {
+    console.warn('Failed to load PDF fonts, will attempt to use fallback:', error);
+  }
   
-  // Convert unit for jsPDF compatibility
+  // 轉換單位以與 jsPDF 兼容
   const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
   
-  // Create a new PDF document
+  // 創建一個新的 PDF 文檔
   const doc = new jsPDF({
     orientation: settings.orientation,
     unit: pdfUnit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
   });
   
-  // Set font to support Asian characters - make it explicit for all text
-  doc.setFont('NotoSansTC');  // Updated font name
+  // 設置字體以支持亞洲字符
+  try {
+    console.log('Setting NotoSansTC font for document');
+    doc.setFont('NotoSansTC');
+  } catch (e) {
+    console.error('Error setting font:', e);
+    // 如果無法設定字體，保持靜默並繼續使用預設字體
+  }
   
-  // Define margins
+  // 定義邊距
   const margin = {
     top: settings.margins.top,
     right: settings.margins.right,
@@ -118,40 +129,40 @@ export async function generateBingoCardPDF(
   console.log('PDF Generation - Margins:', margin);
   console.log('PDF Generation - Unit:', pdfUnit);
   
-  // Calculate scale factor for vector drawing
-  const unitScaleFactor = pdfUnit === 'mm' ? 1 : (pdfUnit === 'cm' ? 10 : 25.4); // convert to mm
+  // 計算縮放因子用於向量繪圖
+  const unitScaleFactor = pdfUnit === 'mm' ? 1 : (pdfUnit === 'cm' ? 10 : 25.4); // 轉換為毫米
   
-  // Generate multiple cards
+  // 生成多個卡片
   for (let cardIndex = 0; cardIndex < numberOfCards; cardIndex++) {
     if (cardIndex > 0) {
-      // Add a new page for each additional card
+      // 為每個額外的卡片添加新頁面
       doc.addPage();
     }
     
     try {
       console.log(`Generating vector-based card ${cardIndex + 1}...`);
       
-      // Calculate card dimensions
+      // 計算卡片尺寸
       const availableWidth = settings.width - margin.left - margin.right;
       const availableHeight = settings.height - margin.top - margin.bottom;
       
-      // 1. Draw title section if enabled
+      // 1. 如果啟用，則繪製標題部分
       let currentY = margin.top;
       if (settings.title.show) {
         const titleHeight = settings.title.height;
         
-        // Title background
+        // 標題背景
         if (settings.title.backgroundColor) {
           doc.setFillColor(settings.title.backgroundColor);
           doc.rect(margin.left, currentY, availableWidth, titleHeight, 'F');
         }
         
-        // Title text - explicitly set font for title
+        // 標題文本 - 明確設置標題的字體
         doc.setTextColor(settings.title.color || '#000000');
         doc.setFontSize(settings.title.fontSize);
-        doc.setFont('NotoSansTC');  // Updated font name
+        doc.setFont('NotoSansTC');
         
-        // Text alignment
+        // 文本對齊
         let titleX = margin.left;
         if (settings.title.alignment.includes('center')) {
           titleX = margin.left + (availableWidth / 2);
@@ -199,7 +210,7 @@ export async function generateBingoCardPDF(
           
           if (itemIndex < cardItems.length) {
             const item = cardItems[itemIndex++];
-            const cellPadding = 2; // padding inside cells in mm
+            const cellPadding = 2; // inside cells in mm
             
             // Calculate content position based on alignment
             const alignment = settings.table.contentAlignment;
@@ -208,10 +219,14 @@ export async function generateBingoCardPDF(
             
             // Different content rendering based on settings
             if (settings.table.contentType === 'text-only') {
-              // Text only - ensure font is set
+              // 文字模式 - 每次繪製前重新設定字體確保正確使用中文字體
               doc.setFontSize(10);
               doc.setTextColor('#000000');
-              doc.setFont('NotoSansTC');  // Updated font name
+              try {
+                doc.setFont('NotoSansTC');
+              } catch (e) {
+                console.error('Error setting font for text cell:', e);
+              }
               
               // Calculate text position
               let textY = y + (cellHeight / 2);
@@ -281,7 +296,11 @@ export async function generateBingoCardPDF(
                 if (settings.table.contentType === 'image-text') {
                   doc.setFontSize(8);
                   doc.setTextColor('#000000');
-                  doc.setFont('NotoSansTC');  // Ensure font is set for image captions
+                  try {
+                    doc.setFont('NotoSansTC');
+                  } catch (e) {
+                    console.error('Error setting font for image-text:', e);
+                  }
                 
                   // Position text based on image position
                   let textX = contentX;
@@ -342,21 +361,25 @@ export async function generateBingoCardPDF(
         }
       }
       
-      // 3. Draw footer if enabled
+      // 3. 如果啟用，則繪製頁腳
       if (settings.footer.show) {
         const footerHeight = settings.footer.height;
         const footerY = settings.height - margin.bottom - footerHeight;
         
-        // Footer background
+        // 頁腳背景
         if (settings.footer.backgroundColor) {
           doc.setFillColor(settings.footer.backgroundColor);
           doc.rect(margin.left, footerY, availableWidth, footerHeight, 'F');
         }
         
-        // Footer text
+        // 頁腳文本 - 確保字體設置
         doc.setTextColor(settings.footer.color || '#000000');
         doc.setFontSize(settings.footer.fontSize);
-        doc.setFont('NotoSansTC');  // Ensure font is set for footer
+        try {
+          doc.setFont('NotoSansTC');
+        } catch (e) {
+          console.error('Error setting font for footer:', e);
+        }
         
         // Text alignment
         let footerX = margin.left;
@@ -376,7 +399,7 @@ export async function generateBingoCardPDF(
     } catch (error) {
       console.error(`Failed to render card ${cardIndex + 1}:`, error);
       
-      // Fallback to raster method if vector method fails
+      // 如果向量方法失敗，則回退到光柵方法
       console.log(`Falling back to raster method for card ${cardIndex + 1}`);
       try {
         // Render the bingo card as raster image (fallback)
@@ -413,12 +436,12 @@ export async function generateBingoCardPDF(
     }
   }
   
-  // Return the PDF as a blob
+  // 返回 PDF 作為 blob
   return doc.output('blob');
 }
 
 /**
- * Creates a PDF with bingo cards, with additional options for advanced customization
+ * 創建包含賓果卡的 PDF，提供額外的高級自定義選項
  */
 export async function generateBingoCardPDFAsync(
   items: BingoCardItem[],

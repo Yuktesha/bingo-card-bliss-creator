@@ -10,11 +10,10 @@ import { jsPDF } from 'jspdf';
  */
 export async function loadPDFFonts(): Promise<boolean> {
   try {
-    // Use a more reliable CDN for Noto Sans CJK font
-    // Google Fonts CDN for Noto Sans TC (Traditional Chinese)
+    // Use a more reliable font file from Google Fonts
     const fontUrl = 'https://fonts.gstatic.com/s/notosanstc/v26/XLYgIZAzeuabf6qtPgLUX9vxAHys.otf';
     
-    console.log('Loading Asian font for PDF...');
+    console.log('Loading Asian font for PDF from:', fontUrl);
     
     // Fetch the font
     const response = await fetch(fontUrl);
@@ -25,20 +24,30 @@ export async function loadPDFFonts(): Promise<boolean> {
     // Convert to array buffer
     const fontBuffer = await response.arrayBuffer();
     
-    // Add the font to jsPDF
-    jsPDF.API.events.push(['addFonts', function() {
-      console.log('Adding NotoSansTC font to jsPDF...');
-      this.addFileToVFS('NotoSansTC-Regular.otf', fontBuffer);
-      this.addFont('NotoSansTC-Regular.otf', 'NotoSansTC', 'normal');
-      
-      // Make NotoSansTC the default font
-      this.setFont('NotoSansTC');
-    }]);
+    // Register the font properly in jsPDF
+    jsPDF.API.addFileToVFS('NotoSansTC-Regular.ttf', arrayBufferToBase64(fontBuffer));
+    jsPDF.API.addFont('NotoSansTC-Regular.ttf', 'NotoSansTC', 'normal');
     
-    console.log('Asian font loaded successfully');
+    console.log('Asian font loaded and registered successfully');
     return true;
   } catch (error) {
     console.error('Error loading Asian font:', error);
     return false;
   }
+}
+
+/**
+ * Helper function to convert ArrayBuffer to base64 string
+ * This is required for jsPDF's addFileToVFS function
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  
+  return btoa(binary);
 }
