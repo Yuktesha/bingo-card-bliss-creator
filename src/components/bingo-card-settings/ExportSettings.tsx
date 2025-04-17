@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
-import { generateBingoCardPDF } from '@/utils/pdfUtils';
+import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
 import { Download, Loader2 } from 'lucide-react';
 
 const ExportSettings: React.FC = () => {
@@ -37,7 +37,7 @@ const ExportSettings: React.FC = () => {
     try {
       setIsGeneratingPDF(true);
       
-      const pdfBlob = generateBingoCardPDF(
+      const pdfBlob = await generateBingoCardPDFAsync(
         items,
         settings,
         settings.export.numberOfCards

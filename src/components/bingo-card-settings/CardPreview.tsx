@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Save, RefreshCw } from 'lucide-react';
 import { useBingo } from '@/contexts/BingoContext';
-import { renderBingoCardPreview } from '@/utils/bingo';
+import { renderBingoCardPreviewAsync } from '@/utils/bingo';
 
 const CardPreview: React.FC = () => {
   const { settings, items } = useBingo();
@@ -15,23 +15,8 @@ const CardPreview: React.FC = () => {
   const refreshPreview = async () => {
     setIsLoading(true);
     try {
-      const canvas = renderBingoCardPreview(items, settings);
-      setTimeout(() => {
-        try {
-          const dataUrl = canvas.toDataURL('image/png');
-          setPreviewSrc(dataUrl);
-          setIsLoading(false);
-        } catch (error) {
-          console.error('Failed to convert canvas to data URL:', error);
-          setPreviewSrc(null);
-          toast({
-            title: '預覽生成失敗',
-            description: '無法載入圖片或生成預覽',
-            variant: 'destructive'
-          });
-          setIsLoading(false);
-        }
-      }, 100);
+      const dataUrl = await renderBingoCardPreviewAsync(items, settings);
+      setPreviewSrc(dataUrl);
     } catch (error) {
       console.error('Preview generation error:', error);
       setPreviewSrc(null);
@@ -40,6 +25,7 @@ const CardPreview: React.FC = () => {
         description: '無法載入圖片或生成預覽',
         variant: 'destructive'
       });
+    } finally {
       setIsLoading(false);
     }
   };

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { getFileNameFromPath, generateId, shuffleArray } from '@/utils/fileUtils';
@@ -54,7 +55,7 @@ const defaultSettings: BingoCardSettings = {
   },
   
   footer: {
-    text: 'Yuktesha Studio程式規劃 + WindSurf AI撰寫開發',
+    text: 'Yuktesha Studio程式規劃 + LovAble撰寫開發',
     show: true,
     height: 5,
     fontSize: 8,

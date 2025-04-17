@@ -1,3 +1,4 @@
+
 // Utilities for PDF generation
 import jsPDF from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
@@ -73,11 +74,11 @@ export function getPaperSizeDimensions(
 /**
  * Creates a PDF with bingo cards
  */
-export function generateBingoCardPDF(
+export async function generateBingoCardPDF(
   items: BingoCardItem[],
   settings: BingoCardSettings,
   numberOfCards: number
-): Blob {
+): Promise<Blob> {
   // Filter selected items
   const selectedItems = items.filter(item => item.selected);
   const cellsPerCard = settings.table.rows * settings.table.columns;
@@ -121,7 +122,7 @@ export function generateBingoCardPDF(
     try {
       console.log(`Generating card ${cardIndex + 1}...`);
       // Render the bingo card
-      const canvas = renderBingoCardPreview(selectedItems, settings, cardIndex);
+      const canvas = await renderBingoCardPreview(selectedItems, settings, cardIndex);
       
       // Convert canvas to an image
       const imgData = canvas.toDataURL('image/png');
@@ -187,7 +188,7 @@ export async function generateBingoCardPDFAsync(
       unit: settings.unit
     });
     
-    return generateBingoCardPDF(items, settings, numberOfCards);
+    return await generateBingoCardPDF(items, settings, numberOfCards);
   } catch (error) {
     console.log('PDF generation failed:', error);
     throw error;
