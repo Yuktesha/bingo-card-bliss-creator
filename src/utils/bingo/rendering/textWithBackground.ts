@@ -35,8 +35,12 @@ export function drawTextWithBackground(
     textAreaHeight
   );
   
+  // For CJK text, we may need smaller font size
+  const isCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(text);
+  const adjustedFontSize = isCJK ? fontSize * 0.9 : fontSize;
+  
   drawTextCellWithAlignment(renderContext, text, {
     ...options,
-    fontSize: fontSize
+    fontSize: adjustedFontSize
   });
 }

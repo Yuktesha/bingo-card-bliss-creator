@@ -7,7 +7,8 @@ export function drawTextCellWithAlignment(
   { x, y, width, height, fontSize = 12, alignment = 'middle-center', padding = 0 }: TextRenderOptions
 ): void {
   ctx.fillStyle = '#000000';
-  ctx.font = `${fontSize}px Arial`;
+  // Use a font stack that includes CJK support
+  ctx.font = `${fontSize}px "Arial", "Microsoft YaHei", "微軟雅黑", "SimHei", "黑体", sans-serif`;
   
   // Handle horizontal alignment
   if (alignment.includes('left')) {
@@ -33,7 +34,12 @@ export function drawTextCellWithAlignment(
     y += height / 2;
   }
   
-  const displayText = text.length > 15 ? text.substring(0, 15) + '...' : text;
+  // For CJK text, we don't want to truncate as aggressively
+  // Each CJK character is meaningful, and 6-8 chars can express a complete thought
+  const isCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(text);
+  const maxLength = isCJK ? 8 : 15;
+  const displayText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  
   ctx.fillText(displayText, x, y);
 }
 
@@ -43,10 +49,14 @@ export function drawVerticalText(
   { x, y, width, height, fontSize = 12, padding = 0 }: TextRenderOptions
 ): void {
   ctx.fillStyle = '#000000';
-  ctx.font = `${fontSize}px Arial`;
+  // Use a font stack that includes CJK support
+  ctx.font = `${fontSize}px "Arial", "Microsoft YaHei", "微軟雅黑", "SimHei", "黑体", sans-serif`;
   
   const chars = text.split('');
-  const displayChars = chars.length > 10 ? chars.slice(0, 10).concat(['...']) : chars;
+  // For CJK text, we don't want to truncate as aggressively
+  const isCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(text);
+  const maxLength = isCJK ? 6 : 10;
+  const displayChars = chars.length > maxLength ? chars.slice(0, maxLength).concat(['...']) : chars;
   const displayCount = displayChars.length;
   
   const centerX = x + width / 2;

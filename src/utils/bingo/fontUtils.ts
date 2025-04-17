@@ -18,8 +18,17 @@ export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
       doc.setLanguage('zh-TW'); // Set Traditional Chinese as the document language
       
       // Set default font to a system font that supports CJK characters
-      // This helps jsPDF use the default system sans serif font
-      doc.setFont('sans-serif');
+      doc.setFont("helvetica", "normal");
+      
+      // Add Noto Sans TC as a fallback font for better CJK support
+      try {
+        // This is a lightweight approach that works with jsPDF's default fonts
+        doc.addFont("https://fonts.gstatic.com/s/notosanstc/v20/nKKuOLOAaK_Mayh4oVO-8C9vWaDCwzS-xdTGzaA.woff2", "NotoSansTC", "normal");
+        doc.setFont("NotoSansTC");
+        console.log('Successfully added Noto Sans TC font for CJK support');
+      } catch (fontError) {
+        console.warn('Failed to add Noto Sans TC font, falling back to default:', fontError);
+      }
     }
     
     // Return true to indicate successful setup
@@ -29,4 +38,3 @@ export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
     return false;
   }
 }
-

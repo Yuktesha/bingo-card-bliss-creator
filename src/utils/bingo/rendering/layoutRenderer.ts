@@ -18,9 +18,9 @@ export function renderTitleSection(
   ctx.fillStyle = settings.title.backgroundColor;
   ctx.fillRect(x, y, availableWidth, titleHeight);
   
-  // Draw title text
+  // Draw title text with CJK font support
   ctx.fillStyle = settings.title.color;
-  ctx.font = `${settings.title.fontSize * scale / 2}px ${settings.title.fontFamily}`;
+  ctx.font = `${settings.title.fontSize * scale / 2}px "Arial", "Microsoft YaHei", "微軟雅黑", "SimHei", "黑体", ${settings.title.fontFamily}`;
   
   // Determine text position based on alignment
   let textX = x;
@@ -69,9 +69,9 @@ export function renderFooterSection(
   ctx.fillStyle = settings.footer.backgroundColor;
   ctx.fillRect(x, y, availableWidth, footerHeight);
   
-  // Draw footer text
+  // Draw footer text with CJK font support
   ctx.fillStyle = settings.footer.color;
-  ctx.font = `${settings.footer.fontSize * scale / 2}px ${settings.footer.fontFamily}`;
+  ctx.font = `${settings.footer.fontSize * scale / 2}px "Arial", "Microsoft YaHei", "微軟雅黑", "SimHei", "黑体", ${settings.footer.fontFamily}`;
   
   // Determine text position based on alignment
   let textX = x;
@@ -99,4 +99,3 @@ export function renderFooterSection(
   
   ctx.fillText(settings.footer.text, textX, textY);
 }
-

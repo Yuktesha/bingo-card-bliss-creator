@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -126,8 +127,8 @@ const ExportSettings: React.FC = () => {
         </div>
         
         <div className="text-xs text-muted-foreground pb-2">
-          使用向量繪圖可產生更清晰的文字和線條。如果中文顯示發生問題，系統會自動切換至
-          300 DPI 的高解析度點陣圖方案。圖片使用高品質 JPEG 壓縮以平衡檔案大小。
+          使用向量繪圖可產生更清晰的文字和線條。系統會自動使用支援中文的字體渲染文字，
+          如果出現亂碼，請取消勾選此選項來使用點陣圖方式。圖片將使用高品質 JPEG 壓縮以平衡檔案大小。
         </div>
         
         <Button 
