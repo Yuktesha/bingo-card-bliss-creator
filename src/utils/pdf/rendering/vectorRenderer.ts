@@ -1,10 +1,11 @@
+
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { setupPDFFonts } from '@/utils/bingo/fontUtils';
 import { renderCell } from './cellRenderer';
 
 /**
- * Renders a vector-based bingo card directly in the PDF
+ * Renders a vector-based bingo card directly in the PDF with improved CJK support
  */
 export async function renderVectorCard(
   doc: jsPDF,
@@ -12,6 +13,9 @@ export async function renderVectorCard(
   settings: BingoCardSettings,
   cardIndex: number
 ): Promise<void> {
+  // Ensure fonts are set up for CJK rendering
+  await setupPDFFonts(doc);
+  
   // Calculate margins and positioning
   const margin = {
     top: settings.margins.top,
@@ -48,9 +52,19 @@ async function renderHeader(
       doc.rect(margin.left, currentY, availableWidth, titleHeight, 'F');
     }
     
+    // Enhanced text rendering for title
     doc.setTextColor(settings.title.color || '#000000');
     doc.setFontSize(settings.title.fontSize);
-    doc.setFont('sans-serif');
+    
+    // Check if title contains CJK characters
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(settings.title.text);
+    
+    try {
+      doc.setFont(hasCJK ? "sans-serif" : settings.title.fontFamily || "sans-serif");
+    } catch (e) {
+      console.warn('Could not set header font, using default');
+      doc.setFont('helvetica');
+    }
     
     let titleX = margin.left;
     if (settings.title.alignment.includes('center')) {
@@ -135,9 +149,18 @@ async function renderFooter(
       doc.rect(margin.left, footerY, availableWidth, footerHeight, 'F');
     }
     
+    // Check if footer contains CJK characters
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(settings.footer.text);
+    
     doc.setTextColor(settings.footer.color || '#000000');
     doc.setFontSize(settings.footer.fontSize);
-    doc.setFont('sans-serif');
+    
+    try {
+      doc.setFont(hasCJK ? "sans-serif" : settings.footer.fontFamily || "sans-serif");
+    } catch (e) {
+      console.warn('Could not set footer font, using default');
+      doc.setFont('helvetica');
+    }
     
     let footerX = margin.left;
     if (settings.footer.alignment.includes('center')) {

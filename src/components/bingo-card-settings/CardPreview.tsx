@@ -20,7 +20,7 @@ const CardPreview: React.FC = () => {
     try {
       console.log('Generating bingo card preview...');
       
-      // 確保有足夠的選定項目
+      // Filter selected items
       const selectedItems = items.filter(item => item.selected);
       const cellsNeeded = settings.table.rows * settings.table.columns;
       
@@ -33,7 +33,6 @@ const CardPreview: React.FC = () => {
       console.log('Preview generation completed successfully');
     } catch (error: any) {
       console.error('Preview generation error:', error);
-      setPreviewSrc(null);
       setError(error?.message || '無法載入圖片或生成預覽');
       toast({
         title: '預覽生成失敗',
@@ -46,8 +45,8 @@ const CardPreview: React.FC = () => {
   };
   
   useEffect(() => {
-    // Only generate preview on mount if we have enough selected items
-    const generatePreview = async () => {
+    // Generate preview on component mount and when settings or items change
+    const generateInitialPreview = async () => {
       try {
         const selectedItems = items.filter(item => item.selected);
         const cellsNeeded = settings.table.rows * settings.table.columns;
@@ -64,7 +63,7 @@ const CardPreview: React.FC = () => {
       }
     };
     
-    generatePreview();
+    generateInitialPreview();
   }, [settings, items]);
 
   return (

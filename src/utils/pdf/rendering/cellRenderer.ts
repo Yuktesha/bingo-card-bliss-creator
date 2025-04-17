@@ -21,6 +21,7 @@ export async function renderCell(
   }
 }
 
+// Improved text rendering with better CJK support
 async function renderTextCell(
   doc: jsPDF,
   text: string,
@@ -34,22 +35,17 @@ async function renderTextCell(
   // Detect if text contains CJK characters
   const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(text);
   
-  // Adjust font size for CJK text
-  const fontSize = hasCJK ? 8 : 10;
+  // Slightly larger font size for better readability
+  const fontSize = hasCJK ? 9 : 10;
   doc.setFontSize(fontSize);
   doc.setTextColor('#000000');
   
-  // Use a different font stack for CJK content
-  if (hasCJK) {
-    try {
-      // Try to use a font with CJK support
-      doc.setFont('sans-serif');
-    } catch (e) {
-      console.warn('Failed to set CJK font, using default font instead');
-      doc.setFont('helvetica');
-    }
-  } else {
-    doc.setFont('helvetica');
+  // Set a reliable font for CJK text
+  try {
+    doc.setFont(hasCJK ? "sans-serif" : "helvetica");
+  } catch (e) {
+    console.warn('Could not set font, using default');
+    doc.setFont("helvetica");
   }
   
   let textY = y + (height / 2);
@@ -63,6 +59,7 @@ async function renderTextCell(
   const maxLength = hasCJK ? 6 : 15;
   const displayText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   
+  // Draw any text with proper alignment
   if (settings.table.contentAlignment.includes('center') && !settings.table.contentAlignment.includes('top') && !settings.table.contentAlignment.includes('bottom')) {
     doc.text(displayText, x + (width / 2), textY, { align: 'center' });
   } else if (settings.table.contentAlignment.includes('right')) {
@@ -72,6 +69,7 @@ async function renderTextCell(
   }
 }
 
+// Improved image rendering with proper aspect ratio preservation
 async function renderImageCell(
   doc: jsPDF,
   item: BingoCardItem,
@@ -84,69 +82,73 @@ async function renderImageCell(
 ): Promise<void> {
   if (!item.image) return;
   
-  // Calculate the image dimensions while maintaining aspect ratio
-  const imgX = x + padding;
-  const imgY = y + padding;
-  const imgMaxWidth = width - (2 * padding);
-  const imgMaxHeight = height - (2 * padding);
-  
   try {
-    // Create an Image object to get the aspect ratio
+    // Create a temporary Image object to get the aspect ratio
     const img = new Image();
     img.src = item.image;
     
+    // Wait for image to load to get accurate dimensions
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      // If image is already loaded, resolve immediately
+      if (img.complete) resolve(null);
+    });
+    
+    // Calculate the available space for the image within the cell
+    const availableWidth = width - (2 * padding);
+    const availableHeight = height - (2 * padding);
+    
+    // Get image's natural aspect ratio
+    const aspectRatio = img.width / img.height;
+    
     // Calculate dimensions while preserving aspect ratio
     let imgWidth, imgHeight;
-    const aspectRatio = img.width / img.height;
     
     if (aspectRatio > 1) {
       // Landscape image
-      imgWidth = imgMaxWidth;
-      imgHeight = imgMaxWidth / aspectRatio;
+      imgWidth = availableWidth;
+      imgHeight = imgWidth / aspectRatio;
       
-      // If height is too large, recalculate
-      if (imgHeight > imgMaxHeight) {
-        imgHeight = imgMaxHeight;
+      // If calculated height exceeds available height, recalculate
+      if (imgHeight > availableHeight) {
+        imgHeight = availableHeight;
         imgWidth = imgHeight * aspectRatio;
       }
     } else {
-      // Portrait image
-      imgHeight = imgMaxHeight;
-      imgWidth = imgMaxHeight * aspectRatio;
+      // Portrait or square image
+      imgHeight = availableHeight;
+      imgWidth = imgHeight * aspectRatio;
       
-      // If width is too large, recalculate
-      if (imgWidth > imgMaxWidth) {
-        imgWidth = imgMaxWidth;
+      // If calculated width exceeds available width, recalculate
+      if (imgWidth > availableWidth) {
+        imgWidth = availableWidth;
         imgHeight = imgWidth / aspectRatio;
       }
     }
     
     // Center the image in the cell
-    const offsetX = (imgMaxWidth - imgWidth) / 2;
-    const offsetY = (imgMaxHeight - imgHeight) / 2;
+    const imgX = x + padding + (availableWidth - imgWidth) / 2;
+    const imgY = y + padding + (availableHeight - imgHeight) / 2;
     
-    doc.addImage(
-      item.image,
-      'PNG',
-      imgX + offsetX,
-      imgY + offsetY,
-      imgWidth,
-      imgHeight
-    );
-  } catch (error) {
-    console.error('Error rendering image in PDF:', error);
-    // Fallback to original method if the calculation fails
+    // Add the image to the PDF
     doc.addImage(
       item.image,
       'PNG',
       imgX,
       imgY,
-      imgMaxWidth,
-      imgMaxHeight
+      imgWidth,
+      imgHeight
     );
+  } catch (error) {
+    console.error('Error rendering image in PDF:', error);
+    // In case of error, simply add a placeholder text
+    doc.setFontSize(8);
+    doc.text('[圖片載入失敗]', x + width/2, y + height/2, { align: 'center' });
   }
 }
 
+// Improved rendering for cells with both image and text
 async function renderImageTextCell(
   doc: jsPDF,
   item: BingoCardItem,
@@ -162,75 +164,178 @@ async function renderImageTextCell(
   
   if (position === 'bottom') {
     // Image on top, text on bottom
-    const imageHeight = height * 0.7;
+    const textHeight = height * 0.25;
+    const imageHeight = height - textHeight;
+    
     if (item.image) {
-      await renderImageCell(doc, item, settings, x, y, width, imageHeight, padding);
+      try {
+        // Create a temporary Image object to get the aspect ratio
+        const img = new Image();
+        img.src = item.image;
+        
+        // Wait for image to load to get accurate dimensions
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          // If image is already loaded, resolve immediately
+          if (img.complete) resolve(null);
+        });
+        
+        // Calculate dimensions for the image portion
+        const availableWidth = width - (2 * padding);
+        const availableHeight = imageHeight - (2 * padding);
+        
+        // Get image's natural aspect ratio
+        const aspectRatio = img.width / img.height;
+        
+        // Calculate dimensions while preserving aspect ratio
+        let imgWidth, imgHeight;
+        
+        if (aspectRatio > 1) {
+          // Landscape image
+          imgWidth = availableWidth;
+          imgHeight = imgWidth / aspectRatio;
+          
+          // If calculated height exceeds available height, recalculate
+          if (imgHeight > availableHeight) {
+            imgHeight = availableHeight;
+            imgWidth = imgHeight * aspectRatio;
+          }
+        } else {
+          // Portrait or square image
+          imgHeight = availableHeight;
+          imgWidth = imgHeight * aspectRatio;
+          
+          // If calculated width exceeds available width, recalculate
+          if (imgWidth > availableWidth) {
+            imgWidth = availableWidth;
+            imgHeight = imgWidth / aspectRatio;
+          }
+        }
+        
+        // Center the image in its portion of the cell
+        const imgX = x + padding + (availableWidth - imgWidth) / 2;
+        const imgY = y + padding + (availableHeight - imgHeight) / 2;
+        
+        // Add the image to the PDF
+        doc.addImage(
+          item.image,
+          'PNG',
+          imgX,
+          imgY,
+          imgWidth,
+          imgHeight
+        );
+      } catch (error) {
+        console.error('Error rendering image part in image-text cell:', error);
+      }
     }
     
-    // Detect if text contains CJK characters
-    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
+    // Render the text portion
+    const textY = y + imageHeight + 2;
     
-    // Adjust font size for CJK text
-    const fontSize = hasCJK ? 6 : 8;
+    // Detect CJK text
+    const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
+    const fontSize = hasCJK ? 7 : 8;
     doc.setFontSize(fontSize);
     doc.setTextColor('#000000');
     
-    if (hasCJK) {
-      try {
-        doc.setFont('sans-serif');
-      } catch (e) {
-        doc.setFont('helvetica');
-      }
-    } else {
-      doc.setFont('helvetica');
+    try {
+      doc.setFont(hasCJK ? "sans-serif" : "helvetica");
+    } catch (e) {
+      doc.setFont("helvetica");
     }
     
-    const textY = y + imageHeight + padding + 5;
     const maxLength = hasCJK ? 5 : 12;
     const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
     
-    if (settings.table.contentAlignment.includes('center')) {
-      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
-    } else if (settings.table.contentAlignment.includes('right')) {
-      doc.text(displayText, x + width - padding, textY, { align: 'right' });
-    } else {
-      doc.text(displayText, x + padding, textY);
-    }
+    doc.text(displayText, x + (width / 2), textY + padding, { align: 'center' });
   } else if (position === 'top') {
     // Text on top, image on bottom
-    const textHeight = height * 0.3;
+    const textHeight = height * 0.25;
+    const imageHeight = height - textHeight;
     
-    // Detect if text contains CJK characters and render text
+    // Render text first
     const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
-    const fontSize = hasCJK ? 6 : 8;
+    const fontSize = hasCJK ? 7 : 8;
     doc.setFontSize(fontSize);
     doc.setTextColor('#000000');
     
-    if (hasCJK) {
-      try {
-        doc.setFont('sans-serif');
-      } catch (e) {
-        doc.setFont('helvetica');
-      }
-    } else {
-      doc.setFont('helvetica');
+    try {
+      doc.setFont(hasCJK ? "sans-serif" : "helvetica");
+    } catch (e) {
+      doc.setFont("helvetica");
     }
     
-    const textY = y + padding + 5;
     const maxLength = hasCJK ? 5 : 12;
     const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
+    const textY = y + padding + 5;
     
-    if (settings.table.contentAlignment.includes('center')) {
-      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
-    } else if (settings.table.contentAlignment.includes('right')) {
-      doc.text(displayText, x + width - padding, textY, { align: 'right' });
-    } else {
-      doc.text(displayText, x + padding, textY);
-    }
+    doc.text(displayText, x + (width / 2), textY, { align: 'center' });
     
-    // Render image
+    // Then render image if available
     if (item.image) {
-      await renderImageCell(doc, item, settings, x, y + textHeight, width, height - textHeight, padding);
+      try {
+        // Create a temporary Image object to get the aspect ratio
+        const img = new Image();
+        img.src = item.image;
+        
+        // Wait for image to load to get accurate dimensions
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          // If image is already loaded, resolve immediately
+          if (img.complete) resolve(null);
+        });
+        
+        // Calculate dimensions for the image portion
+        const availableWidth = width - (2 * padding);
+        const availableHeight = imageHeight - (2 * padding);
+        
+        // Get image's natural aspect ratio
+        const aspectRatio = img.width / img.height;
+        
+        // Calculate dimensions while preserving aspect ratio
+        let imgWidth, imgHeight;
+        
+        if (aspectRatio > 1) {
+          // Landscape image
+          imgWidth = availableWidth;
+          imgHeight = imgWidth / aspectRatio;
+          
+          // If calculated height exceeds available height, recalculate
+          if (imgHeight > availableHeight) {
+            imgHeight = availableHeight;
+            imgWidth = imgHeight * aspectRatio;
+          }
+        } else {
+          // Portrait or square image
+          imgHeight = availableHeight;
+          imgWidth = imgHeight * aspectRatio;
+          
+          // If calculated width exceeds available width, recalculate
+          if (imgWidth > availableWidth) {
+            imgWidth = availableWidth;
+            imgHeight = imgWidth / aspectRatio;
+          }
+        }
+        
+        // Center the image in its portion of the cell
+        const imgX = x + padding + (availableWidth - imgWidth) / 2;
+        const imgY = y + textHeight + padding + (availableHeight - imgHeight) / 2;
+        
+        // Add the image to the PDF
+        doc.addImage(
+          item.image,
+          'PNG',
+          imgX,
+          imgY,
+          imgWidth,
+          imgHeight
+        );
+      } catch (error) {
+        console.error('Error rendering image part in image-text cell:', error);
+      }
     }
   } else {
     // Default center overlay
@@ -238,29 +343,25 @@ async function renderImageTextCell(
       await renderImageCell(doc, item, settings, x, y, width, height, padding);
     }
     
-    // Add a semi-transparent background for text
+    // Add a semi-transparent background for better text visibility
     doc.setFillColor(255, 255, 255, 0.7);
     doc.rect(x + padding, y + (height/2) - 8, width - (2 * padding), 16, 'F');
     
-    // Render text
+    // Render text on top with improved CJK support
     const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(item.text);
-    const fontSize = hasCJK ? 6 : 8;
+    const fontSize = hasCJK ? 7 : 8;
     doc.setFontSize(fontSize);
     doc.setTextColor('#000000');
     
-    if (hasCJK) {
-      try {
-        doc.setFont('sans-serif');
-      } catch (e) {
-        doc.setFont('helvetica');
-      }
-    } else {
-      doc.setFont('helvetica');
+    try {
+      doc.setFont(hasCJK ? "sans-serif" : "helvetica");
+    } catch (e) {
+      doc.setFont("helvetica");
     }
     
-    const textY = y + (height / 2);
     const maxLength = hasCJK ? 5 : 12;
     const displayText = item.text.length > maxLength ? item.text.substring(0, maxLength) + '...' : item.text;
+    const textY = y + (height / 2);
     
     doc.text(displayText, x + (width / 2), textY, { align: 'center' });
   }

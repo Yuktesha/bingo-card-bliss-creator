@@ -9,12 +9,15 @@ import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
 import { Download, Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { setupPDFFonts } from '@/utils/bingo';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [useHighResolution, setUseHighResolution] = useState(true);
+  const [preserveImageAspectRatio, setPreserveImageAspectRatio] = useState(true);
+  const [fontMode, setFontMode] = useState<string>("embedded");
   const [fontSetupDone, setFontSetupDone] = useState(false);
   
   useEffect(() => {
@@ -62,8 +65,9 @@ const ExportSettings: React.FC = () => {
         settings.export.numberOfCards,
         {
           highResolution: useHighResolution,
-          useSystemFonts: true,
-          useCJKSupport: true
+          useSystemFonts: fontMode === "system",
+          useCJKSupport: true,
+          preserveImageAspectRatio: preserveImageAspectRatio
         }
       );
       
@@ -115,6 +119,26 @@ const ExportSettings: React.FC = () => {
           />
         </div>
         
+        <div className="space-y-2">
+          <Label>字體渲染模式</Label>
+          <Select
+            value={fontMode}
+            onValueChange={setFontMode}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="選擇字體渲染模式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="embedded">嵌入式字體 (建議)</SelectItem>
+              <SelectItem value="system">系統字體</SelectItem>
+              <SelectItem value="raster">點陣圖字體 (最佳相容性)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            如果中文顯示為亂碼，請嘗試使用「點陣圖字體」選項。
+          </p>
+        </div>
+        
         <div className="flex items-center space-x-2 py-2">
           <Checkbox 
             id="useHighRes"
@@ -126,9 +150,20 @@ const ExportSettings: React.FC = () => {
           </Label>
         </div>
         
+        <div className="flex items-center space-x-2 py-2">
+          <Checkbox 
+            id="preserveAspectRatio"
+            checked={preserveImageAspectRatio}
+            onCheckedChange={(checked) => setPreserveImageAspectRatio(!!checked)}
+          />
+          <Label htmlFor="preserveAspectRatio" className="text-sm font-normal cursor-pointer">
+            保持圖片比例（避免變形）
+          </Label>
+        </div>
+        
         <div className="text-xs text-muted-foreground pb-2">
           使用向量繪圖可產生更清晰的文字和線條。系統會自動使用支援中文的字體渲染文字，
-          如果出現亂碼，請取消勾選此選項來使用點陣圖方式。圖片將使用高品質 JPEG 壓縮以平衡檔案大小。
+          如果出現亂碼，請嘗試更改字體渲染模式或取消勾選向量繪圖選項。圖片將使用高品質 JPEG 壓縮以平衡檔案大小。
         </div>
         
         <Button 

@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { setupPDFFonts } from '@/utils/bingo/fontUtils';
@@ -8,6 +7,7 @@ export interface PDFGenerationOptions {
   highResolution?: boolean;
   useSystemFonts?: boolean;
   useCJKSupport?: boolean;
+  preserveImageAspectRatio?: boolean;
 }
 
 /**
@@ -21,8 +21,9 @@ export async function generateBingoCardPDF(
 ): Promise<Blob> {
   const opts = {
     highResolution: true,
-    useSystemFonts: true,
+    useSystemFonts: false,
     useCJKSupport: true,
+    preserveImageAspectRatio: true,
     ...options
   };
 
@@ -37,7 +38,9 @@ export async function generateBingoCardPDF(
     orientation: settings.orientation,
     unit: settings.unit === 'inch' ? 'in' : settings.unit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize,
-    compress: true
+    compress: true,
+    putOnlyUsedFonts: true,
+    floatPrecision: 16
   });
 
   await setupPDFFonts(doc);
@@ -48,9 +51,13 @@ export async function generateBingoCardPDF(
     }
     
     try {
-      await renderVectorCard(doc, items, settings, cardIndex);
+      if (opts.highResolution) {
+        await renderVectorCard(doc, items, settings, cardIndex);
+      } else {
+        await renderRasterCard(doc, items, settings, cardIndex);
+      }
     } catch (error) {
-      console.error(`Vector rendering failed for card ${cardIndex + 1}, falling back to raster...`);
+      console.error(`Vector rendering failed for card ${cardIndex + 1}, falling back to raster...`, error);
       await renderRasterCard(doc, items, settings, cardIndex);
     }
   }
@@ -76,20 +83,23 @@ export async function generateBingoCardPDFAsync(
     cardsPerPage: 1,
     includeInstructions: false,
     highResolution: true,
-    useSystemFonts: true,
+    useSystemFonts: false,
     useCJKSupport: true,
+    preserveImageAspectRatio: true,
     ...options
   };
+  
+  console.log('PDF generation options:', opts);
   
   try {
     return await generateBingoCardPDF(items, settings, numberOfCards, {
       highResolution: opts.highResolution,
       useSystemFonts: opts.useSystemFonts,
-      useCJKSupport: opts.useCJKSupport
+      useCJKSupport: opts.useCJKSupport,
+      preserveImageAspectRatio: opts.preserveImageAspectRatio
     });
   } catch (error) {
     console.error('PDF generation failed:', error);
     throw error;
   }
 }
-

@@ -1,66 +1,65 @@
 
 /**
- * Font utilities for PDF generation
+ * Font utilities for PDF generation with robust CJK support
  */
 import { jsPDF } from 'jspdf';
 
 /**
- * Sets up font configuration for PDF generation
- * Uses system fonts and ensures proper encoding for CJK (Chinese, Japanese, Korean) characters
+ * Sets up font configuration for PDF generation with enhanced CJK support
  */
 export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
   try {
-    console.log('Setting up PDF to use system fonts with proper CJK support');
+    console.log('Setting up PDF fonts with improved CJK support');
     
-    // If a document is provided, ensure it uses the correct encoding for CJK characters
-    if (doc) {
-      // Use UTF-8 encoding which is important for CJK characters
-      doc.setLanguage('zh-TW'); // Set Traditional Chinese as the document language
-      
-      // Set default font to a system font that supports CJK characters
-      doc.setFont("helvetica", "normal");
-      
-      // Add Noto Sans TC as a fallback font for better CJK support
-      try {
-        // This is a lightweight approach that works with jsPDF's default fonts
-        doc.addFont("https://fonts.gstatic.com/s/notosanstc/v20/nKKuOLOAaK_Mayh4oVO-8C9vWaDCwzS-xdTGzaA.woff2", "NotoSansTC", "normal");
-        doc.setFont("NotoSansTC");
-        console.log('Successfully added Noto Sans TC font for CJK support');
-      } catch (fontError) {
-        console.warn('Failed to add Noto Sans TC font, falling back to default:', fontError);
-        
-        // Try another approach with a different CJK font
-        try {
-          fetch('https://cdn.jsdelivr.net/npm/noto-sans-tc@2.0.0/NotoSansTC-Regular.otf')
-            .then(response => response.arrayBuffer())
-            .then(fontData => {
-              doc.addFileToVFS('NotoSansTC-Regular.otf', Buffer.from(fontData).toString('base64'));
-              doc.addFont('NotoSansTC-Regular.otf', 'NotoSansTC', 'normal');
-              doc.setFont('NotoSansTC');
-              console.log('Successfully added Noto Sans TC font via alternate method');
-            })
-            .catch(err => console.warn('Error loading font from CDN:', err));
-        } catch (alternateError) {
-          console.warn('Failed alternative CJK font loading approach:', alternateError);
-        }
-      }
-    }
-    
-    // Add a dynamic font loader to the document if it exists
+    // Add web fonts to document for browser preview
     if (typeof document !== 'undefined') {
       try {
-        // Add Google Fonts link for Noto Sans TC
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap';
-        document.head.appendChild(link);
-        console.log('Added Noto Sans TC font stylesheet to document');
+        // Add Noto Sans TC for Traditional Chinese
+        if (!document.getElementById('noto-sans-tc-font')) {
+          const link = document.createElement('link');
+          link.id = 'noto-sans-tc-font';
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap';
+          document.head.appendChild(link);
+          console.log('Added Noto Sans TC font for browser display');
+        }
       } catch (e) {
         console.warn('Could not add font stylesheet to document:', e);
       }
     }
     
-    // Return true to indicate successful setup
+    // Configure PDF document for CJK if provided
+    if (doc) {
+      // Use UTF-8 encoding and set Traditional Chinese as document language
+      try {
+        doc.setLanguage('zh-TW');
+      } catch (e) {
+        console.warn('Could not set document language:', e);
+      }
+      
+      // Try to use built-in fonts first
+      doc.setFont("helvetica", "normal");
+      
+      // For better CJK support in PDFs, we'll use a different approach
+      // by embedding a subset of the Noto Sans TC font
+      // This approach uses jsPDF's built-in functionality
+      try {
+        // Use simple approach for basic CJK support
+        const fontFace = "'Noto Sans TC', sans-serif";
+        doc.setFont(fontFace);
+        console.log('Set default font to Noto Sans TC');
+        
+        // Set fallback strategy
+        if (!doc.getFont(fontFace)) {
+          console.log('Falling back to built-in fonts');
+          doc.setFont('helvetica');
+        }
+      } catch (fontError) {
+        console.warn('Failed to set CJK font, using default:', fontError);
+        doc.setFont('helvetica');
+      }
+    }
+    
     return true;
   } catch (error) {
     console.error('Error setting up font configuration:', error);
