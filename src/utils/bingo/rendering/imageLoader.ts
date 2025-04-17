@@ -15,8 +15,8 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
   
   console.log(`Loading ${itemsWithImages.length} images for bingo card`);
 
-  itemsWithImages.forEach(item => {
-    if (!item.image) return;
+  for (const item of itemsWithImages) {
+    if (!item.image) continue;
     
     const promise = new Promise<void>((resolve) => {
       const img = new Image();
@@ -27,8 +27,8 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
         resolve();
       };
       
-      img.onerror = () => {
-        console.warn(`Failed to load image for item: ${item.text}`);
+      img.onerror = (error) => {
+        console.warn(`Failed to load image for item: ${item.text}`, error);
         resolve(); // Resolve anyway to continue processing
       };
       
@@ -38,7 +38,7 @@ export async function loadCardImages(items: BingoCardItem[]): Promise<Map<string
     });
     
     imagePromises.push(promise);
-  });
+  }
 
   try {
     await Promise.all(imagePromises);

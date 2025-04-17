@@ -16,6 +16,7 @@ const CardPreview: React.FC = () => {
   const refreshPreview = async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
       console.log('Generating bingo card preview...');
       
@@ -45,11 +46,21 @@ const CardPreview: React.FC = () => {
   };
   
   useEffect(() => {
+    // Only generate preview on mount if we have enough selected items
     const generatePreview = async () => {
       try {
-        await refreshPreview();
+        const selectedItems = items.filter(item => item.selected);
+        const cellsNeeded = settings.table.rows * settings.table.columns;
+        
+        if (selectedItems.length >= cellsNeeded) {
+          await refreshPreview();
+        } else {
+          setIsLoading(false);
+          setError(`需要至少 ${cellsNeeded} 個選取的項目來生成賓果卡`);
+        }
       } catch (e) {
         console.error("Failed to generate preview on mount:", e);
+        setIsLoading(false);
       }
     };
     
@@ -75,6 +86,11 @@ const CardPreview: React.FC = () => {
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
+              
+              toast({
+                title: '設定已儲存',
+                description: '賓果卡設定已成功儲存為JSON檔案',
+              });
             }}
           >
             <Save size={16} />
