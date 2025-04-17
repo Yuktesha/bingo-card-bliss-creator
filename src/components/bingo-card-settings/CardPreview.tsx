@@ -18,6 +18,15 @@ const CardPreview: React.FC = () => {
     setError(null);
     try {
       console.log('Generating bingo card preview...');
+      
+      // 確保有足夠的選定項目
+      const selectedItems = items.filter(item => item.selected);
+      const cellsNeeded = settings.table.rows * settings.table.columns;
+      
+      if (selectedItems.length < cellsNeeded) {
+        throw new Error(`需要至少 ${cellsNeeded} 個選取的項目來生成賓果卡`);
+      }
+      
       const dataUrl = await renderBingoCardPreviewAsync(items, settings);
       setPreviewSrc(dataUrl);
       console.log('Preview generation completed successfully');
@@ -36,7 +45,15 @@ const CardPreview: React.FC = () => {
   };
   
   useEffect(() => {
-    refreshPreview();
+    const generatePreview = async () => {
+      try {
+        await refreshPreview();
+      } catch (e) {
+        console.error("Failed to generate preview on mount:", e);
+      }
+    };
+    
+    generatePreview();
   }, [settings, items]);
 
   return (

@@ -1,3 +1,4 @@
+
 import { BingoCardItem, BingoCardSettings } from "@/types";
 import { generateBingoCards } from "./cardGenerator";
 import { drawTextCellWithAlignment, drawVerticalText } from "./rendering/textRenderer";
@@ -21,15 +22,22 @@ export async function renderBingoCardPreview(
     throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
   }
   
+  // 生成賓果卡內容
   let cardItems: BingoCardItem[];
-  if (cardIndex > 0) {
-    const cards = generateBingoCards(items, settings, cardIndex + 1);
-    cardItems = cards[cardIndex - 1];
-  } else {
-    const cards = generateBingoCards(items, settings, 1);
-    cardItems = cards[0];
+  try {
+    if (cardIndex > 0) {
+      const cards = generateBingoCards(items, settings, cardIndex + 1);
+      cardItems = cards[cardIndex - 1];
+    } else {
+      const cards = generateBingoCards(items, settings, 1);
+      cardItems = cards[0];
+    }
+  } catch (error) {
+    console.error("Error generating bingo cards:", error);
+    throw error;
   }
   
+  // 設置畫布
   const { canvas, ctx, scale } = setupCanvas(settings, dpi);
   
   const marginTop = settings.margins.top * scale;
@@ -40,8 +48,10 @@ export async function renderBingoCardPreview(
   
   let currentY = marginTop;
   
+  // 渲染標題部分
   currentY = renderTitleSection(ctx, settings, scale, currentY, availableWidth);
   
+  // 計算表格高度
   const footerHeight = settings.footer.show ? settings.footer.height * scale : 0;
   const footerSpacing = settings.footer.show ? settings.sectionSpacing * scale : 0;
   const tableHeight = canvas.height - currentY - marginBottom - footerHeight - footerSpacing;
@@ -49,6 +59,7 @@ export async function renderBingoCardPreview(
   const cellWidth = availableWidth / settings.table.columns;
   const cellHeight = tableHeight / settings.table.rows;
   
+  // 設置表格樣式
   ctx.strokeStyle = settings.table.borderColor;
   ctx.lineWidth = settings.table.borderWidth * scale;
   
@@ -61,14 +72,17 @@ export async function renderBingoCardPreview(
   }
   
   try {
+    // 加載所有單元格圖像
     const imageMap = await loadCardImages(cardItems);
     let itemIndex = 0;
     
+    // 渲染所有單元格
     for (let row = 0; row < settings.table.rows; row++) {
       for (let col = 0; col < settings.table.columns; col++) {
         const x = marginLeft + (col * cellWidth);
         const y = currentY + (row * cellHeight);
         
+        // 繪製單元格邊框
         ctx.strokeRect(x, y, cellWidth, cellHeight);
         
         if (itemIndex < cardItems.length) {
@@ -84,6 +98,7 @@ export async function renderBingoCardPreview(
             padding
           };
           
+          // 根據內容類型渲染單元格
           if (settings.table.contentType === 'text-only') {
             drawTextCellWithAlignment(renderContext, item.text, renderOptions);
           } 
@@ -184,13 +199,14 @@ export async function renderBingoCardPreview(
       }
     }
     
+    // 渲染頁腳
     ctx.setLineDash([]);
     renderFooterSection(ctx, settings, scale, canvas.height, availableWidth);
     
     return canvas;
   } catch (error) {
     console.error('Error during canvas rendering:', error);
-    return canvas;
+    throw error;
   }
 }
 
