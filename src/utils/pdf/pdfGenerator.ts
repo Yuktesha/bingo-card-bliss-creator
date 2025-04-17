@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { renderBingoCardPreview } from '../bingo';
 import { setupPDFFonts } from '../bingo/fontUtils';
+import { generateBingoCards } from '../bingo/cardGenerator';
 
 interface PDFGenerationOptions {
   highResolution?: boolean;
@@ -62,7 +63,7 @@ export async function generateBingoCardPDF(
   }
 
   // Return compressed PDF blob
-  return doc.output('blob', { compress: true });
+  return doc.output('blob') as unknown as Blob;
 }
 
 async function renderVectorCard(
