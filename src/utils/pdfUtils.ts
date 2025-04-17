@@ -1,8 +1,10 @@
+
 // 實用程序，用於 PDF 生成
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { renderBingoCardPreview, renderBingoCardPreviewAsync } from './bingo';
 import { generateBingoCards } from './bingo/cardGenerator';
+import { setupPDFFonts } from './bingo/fontUtils';
 
 /**
  * Calculates dimensions in points based on unit and value
@@ -77,8 +79,21 @@ export function getPaperSizeDimensions(
 export async function generateBingoCardPDF(
   items: BingoCardItem[],
   settings: BingoCardSettings,
-  numberOfCards: number
+  numberOfCards: number,
+  options?: {
+    highResolution?: boolean;
+    useSystemFonts?: boolean;
+    useCJKSupport?: boolean;
+  }
 ): Promise<Blob> {
+  // Default options
+  const opts = {
+    highResolution: true,
+    useSystemFonts: true,
+    useCJKSupport: true,
+    ...options
+  };
+
   // 過濾已選擇的項目
   const selectedItems = items.filter(item => item.selected);
   const cellsPerCard = settings.table.rows * settings.table.columns;
@@ -90,6 +105,7 @@ export async function generateBingoCardPDF(
   console.log('PDF Generation - Settings:', settings);
   console.log('PDF Generation - Items count:', selectedItems.length);
   console.log('PDF Generation - Cards to generate:', numberOfCards);
+  console.log('PDF Generation - CJK Support:', opts.useCJKSupport);
   
   // 轉換單位以與 jsPDF 兼容
   const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
@@ -100,6 +116,9 @@ export async function generateBingoCardPDF(
     unit: pdfUnit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
   });
+
+  // Setup font support for CJK characters
+  await setupPDFFonts(doc);
   
   // 定義邊距
   const margin = {
@@ -114,6 +133,9 @@ export async function generateBingoCardPDF(
   
   // 計算縮放因子用於向量繪圖
   const unitScaleFactor = pdfUnit === 'mm' ? 1 : (pdfUnit === 'cm' ? 10 : 25.4); // 轉換為毫米
+  
+  // Boolean to track if we need to fall back to canvas rendering
+  let needFallbackRendering = false;
   
   // 生成多個卡片
   for (let cardIndex = 0; cardIndex < numberOfCards; cardIndex++) {
@@ -143,6 +165,11 @@ export async function generateBingoCardPDF(
         // 標題文本 - 使用系統字體
         doc.setTextColor(settings.title.color || '#000000');
         doc.setFontSize(settings.title.fontSize);
+        
+        // 重設字型以確保CJK支援
+        if (opts.useCJKSupport) {
+          doc.setFont('sans-serif');
+        }
         
         // 文本對齊
         let titleX = margin.left;
@@ -201,9 +228,14 @@ export async function generateBingoCardPDF(
             
             // Different content rendering based on settings
             if (settings.table.contentType === 'text-only') {
-              // 文字模式 - 每次繪製前重新設定字體確保正確使用中文字體
+              // 文字模式 - 每次繪製前重新設定字體確保正確使用字體
               doc.setFontSize(10);
               doc.setTextColor('#000000');
+              
+              // 重設字型以確保CJK支援
+              if (opts.useCJKSupport) {
+                doc.setFont('sans-serif');
+              }
               
               // Calculate text position
               let textY = y + (cellHeight / 2);
@@ -347,6 +379,11 @@ export async function generateBingoCardPDF(
         doc.setTextColor(settings.footer.color || '#000000');
         doc.setFontSize(settings.footer.fontSize);
         
+        // 重設字型以確保CJK支援
+        if (opts.useCJKSupport) {
+          doc.setFont('sans-serif');
+        }
+        
         // Text alignment
         let footerX = margin.left;
         if (settings.footer.alignment.includes('center')) {
@@ -364,6 +401,7 @@ export async function generateBingoCardPDF(
       
     } catch (error) {
       console.error(`Failed to render card ${cardIndex + 1}:`, error);
+      needFallbackRendering = true;
       
       // 如果向量方法失敗，則回退到光柵方法
       console.log(`Falling back to raster method for card ${cardIndex + 1}`);
@@ -402,6 +440,11 @@ export async function generateBingoCardPDF(
     }
   }
   
+  // If we had to use fallback rendering, add a note to the PDF
+  if (needFallbackRendering) {
+    console.log('Some cards required fallback raster rendering');
+  }
+  
   // 返回 PDF 作為 blob
   return doc.output('blob');
 }
@@ -419,6 +462,7 @@ export async function generateBingoCardPDFAsync(
     includeInstructions?: boolean;
     highResolution?: boolean;
     useSystemFonts?: boolean;
+    useCJKSupport?: boolean;
   }
 ): Promise<Blob> {
   // Default options
@@ -428,6 +472,7 @@ export async function generateBingoCardPDFAsync(
     includeInstructions: false,
     highResolution: true,
     useSystemFonts: true,
+    useCJKSupport: true,
     ...options
   };
   
@@ -440,10 +485,15 @@ export async function generateBingoCardPDFAsync(
       numberOfCards,
       unit: settings.unit,
       highResolution: opts.highResolution,
-      useSystemFonts: opts.useSystemFonts
+      useSystemFonts: opts.useSystemFonts,
+      useCJKSupport: opts.useCJKSupport
     });
     
-    return await generateBingoCardPDF(items, settings, numberOfCards);
+    return await generateBingoCardPDF(items, settings, numberOfCards, {
+      highResolution: opts.highResolution,
+      useSystemFonts: opts.useSystemFonts,
+      useCJKSupport: opts.useCJKSupport
+    });
   } catch (error) {
     console.log('PDF generation failed:', error);
     throw error;

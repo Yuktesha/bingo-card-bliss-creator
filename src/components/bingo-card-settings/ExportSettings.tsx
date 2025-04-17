@@ -20,9 +20,14 @@ const ExportSettings: React.FC = () => {
   // 設置系統字型使用
   useEffect(() => {
     const prepareForPDF = async () => {
-      const success = await setupPDFFonts();
-      setFontSetupDone(success);
-      console.log('PDF system font setup completed');
+      try {
+        const success = await setupPDFFonts();
+        setFontSetupDone(success);
+        console.log('PDF system font setup completed with CJK support');
+      } catch (error) {
+        console.error('Font setup error:', error);
+        setFontSetupDone(false);
+      }
     };
     
     prepareForPDF();
@@ -59,7 +64,8 @@ const ExportSettings: React.FC = () => {
         settings.export.numberOfCards,
         {
           highResolution: useHighResolution,
-          useSystemFonts: true // 使用系統字型
+          useSystemFonts: true, // 使用系統字型
+          useCJKSupport: true // 啟用中文日韓文字支援
         }
       );
       
@@ -124,7 +130,7 @@ const ExportSettings: React.FC = () => {
         
         <div className="text-xs text-muted-foreground pb-2">
           使用向量繪圖可產生更清晰的文字和線條。圖片仍然為點陣圖，解析度為300 DPI。
-          PDF將使用系統預設字型，支援中文顯示。
+          PDF將使用系統預設字型，支援中文顯示。若中文無法正常顯示，程式將嘗試改用內建點陣化方案。
         </div>
         
         <Button 
@@ -150,3 +156,4 @@ const ExportSettings: React.FC = () => {
 };
 
 export default ExportSettings;
+
