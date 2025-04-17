@@ -7,5 +7,7 @@ export {
 
 export {
   generateBingoCardPDF,
-  generateBingoCardPDFAsync
-} from './pdf/pdfGenerator';
+  generateBingoCardPDFAsync,
+  type PDFGenerationOptions
+} from './pdf/core/pdfGenerator';
+
