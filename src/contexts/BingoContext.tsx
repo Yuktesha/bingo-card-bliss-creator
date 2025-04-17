@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { getFileNameFromPath, generateId, shuffleArray } from '@/utils/fileUtils';
