@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,29 @@ import { useToast } from '@/hooks/use-toast';
 import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
 import { Download, Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { loadPDFFonts } from '@/utils/bingo';
 
 const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [useHighResolution, setUseHighResolution] = useState(true);
+  const [isFontLoaded, setIsFontLoaded] = useState(false);
+  
+  // Preload Asian fonts when component mounts
+  useEffect(() => {
+    const preloadFonts = async () => {
+      try {
+        const loaded = await loadPDFFonts();
+        setIsFontLoaded(loaded);
+        console.log('Font preloading completed, status:', loaded);
+      } catch (error) {
+        console.error('Font preloading failed:', error);
+      }
+    };
+    
+    preloadFonts();
+  }, []);
   
   const handleGeneratePDF = async () => {
     const selectedItems = items.filter(item => item.selected);
@@ -108,7 +125,7 @@ const ExportSettings: React.FC = () => {
         </div>
         
         <div className="text-xs text-muted-foreground pb-2">
-          使用向量繪圖可產生更清晰的文字和線條，但圖片仍然為點陣圖，解析度為300 DPI。
+          使用向量繪圖可產生更清晰的文字和線條，並支援中文顯示。圖片仍然為點陣圖，解析度為300 DPI。
         </div>
         
         <Button 

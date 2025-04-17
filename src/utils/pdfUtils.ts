@@ -1,7 +1,8 @@
+
 // Utilities for PDF generation
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
-import { renderBingoCardPreview, renderBingoCardPreviewAsync } from './bingo';
+import { renderBingoCardPreview, renderBingoCardPreviewAsync, loadPDFFonts } from './bingo';
 import { generateBingoCards } from './bingo/cardGenerator';
 
 /**
@@ -91,6 +92,9 @@ export async function generateBingoCardPDF(
   console.log('PDF Generation - Items count:', selectedItems.length);
   console.log('PDF Generation - Cards to generate:', numberOfCards);
   
+  // Preload Asian fonts
+  await loadPDFFonts();
+  
   // Convert unit for jsPDF compatibility
   const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
   
@@ -100,6 +104,9 @@ export async function generateBingoCardPDF(
     unit: pdfUnit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
   });
+  
+  // Set font to support Asian characters
+  doc.setFont('NotoSansCJK');
   
   // Define margins
   const margin = {
