@@ -1,12 +1,12 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  FileDown, 
   FilePlus, 
-  FolderOpen, 
-  Shuffle, 
   Trash, 
-  Upload
+  Shuffle, 
+  FileDown,
+  FileUp
 } from 'lucide-react';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
@@ -74,47 +74,54 @@ export const ItemActionsBar: React.FC = () => {
 
   return (
     <div className="flex items-center gap-2">
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="flex items-center gap-1"
-        onClick={addNewItem}
-      >
-        <FilePlus size={16} />
-        <span className="hidden sm:inline">新增</span>
-      </Button>
+      <div className="flex items-center gap-2 border-r pr-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="flex items-center gap-1"
+          onClick={addNewItem}
+        >
+          <FilePlus size={16} />
+          <span className="hidden sm:inline">新增</span>
+        </Button>
+        
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="flex items-center gap-1"
+          onClick={removeSelectedItems}
+        >
+          <Trash size={16} />
+          <span className="hidden sm:inline">刪除</span>
+        </Button>
+      </div>
       
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="flex items-center gap-1"
-        onClick={removeSelectedItems}
-      >
-        <Trash size={16} />
-        <span className="hidden sm:inline">刪除</span>
-      </Button>
+      <div className="flex items-center gap-2 border-r pr-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="flex items-center gap-1"
+          onClick={shuffleItems}
+        >
+          <Shuffle size={16} />
+          <span className="hidden sm:inline">隨機排列</span>
+        </Button>
+      </div>
       
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="flex items-center gap-1"
-        onClick={shuffleItems}
-      >
-        <Shuffle size={16} />
-        <span className="hidden sm:inline">隨機排列</span>
-      </Button>
-      
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="flex items-center gap-1"
-        onClick={handleExport}
-      >
-        <FileDown size={16} />
-        <span className="hidden sm:inline">匯出資料</span>
-      </Button>
-      
-      <ImportDataDialog />
+      <div className="flex items-center gap-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="flex items-center gap-1"
+          onClick={handleExport}
+        >
+          <FileDown size={16} />
+          <span className="hidden sm:inline">匯出資料</span>
+        </Button>
+        
+        <ImportDataDialog />
+      </div>
     </div>
   );
 };
+
