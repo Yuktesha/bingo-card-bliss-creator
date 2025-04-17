@@ -7,11 +7,13 @@ import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
 import { Download, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [useHighResolution, setUseHighResolution] = useState(true);
   
   const handleGeneratePDF = async () => {
     const selectedItems = items.filter(item => item.selected);
@@ -40,7 +42,10 @@ const ExportSettings: React.FC = () => {
       const pdfBlob = await generateBingoCardPDFAsync(
         items,
         settings,
-        settings.export.numberOfCards
+        settings.export.numberOfCards,
+        {
+          highResolution: useHighResolution
+        }
       );
       
       const url = URL.createObjectURL(pdfBlob);
@@ -89,6 +94,21 @@ const ExportSettings: React.FC = () => {
             }))}
             min={1}
           />
+        </div>
+        
+        <div className="flex items-center space-x-2 py-2">
+          <Checkbox 
+            id="useHighRes"
+            checked={useHighResolution}
+            onCheckedChange={(checked) => setUseHighResolution(!!checked)}
+          />
+          <Label htmlFor="useHighRes" className="text-sm font-normal cursor-pointer">
+            使用向量繪圖（更清晰的文字和線條）
+          </Label>
+        </div>
+        
+        <div className="text-xs text-muted-foreground pb-2">
+          使用向量繪圖可產生更清晰的文字和線條，但圖片仍然為點陣圖，解析度為300 DPI。
         </div>
         
         <Button 
