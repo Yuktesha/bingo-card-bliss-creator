@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +14,7 @@ import { convertUnits, getPaperSizeDimensions, generateBingoCardPDF } from '@/ut
 import { renderBingoCardPreview, generateBingoCards } from '@/utils/bingoCardGenerator';
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Save, Upload } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { 
   RefreshCw, 
   Download, 
@@ -29,18 +29,39 @@ const CardPreview: React.FC = () => {
   const { settings, items } = useBingo();
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { toast } = useToast();
   
   const refreshPreview = async () => {
     setIsLoading(true);
     try {
-      // Use the async version to ensure images are loaded
-      const dataUrl = await renderBingoCardPreviewAsync(items, settings);
-      setPreviewSrc(dataUrl);
+      // Use the canvas element to create a data URL
+      const canvas = renderBingoCardPreview(items, settings);
+      
+      // Convert canvas to data URL
+      setTimeout(() => {
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          setPreviewSrc(dataUrl);
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Failed to convert canvas to data URL:', error);
+          setPreviewSrc(null);
+          toast({
+            title: '預覽生成失敗',
+            description: '無法載入圖片或生成預覽',
+            variant: 'destructive'
+          });
+          setIsLoading(false);
+        }
+      }, 100);
     } catch (error) {
       console.error('Preview generation error:', error);
       setPreviewSrc(null);
-      toast.error('預覽生成失敗', { description: '無法載入圖片或生成預覽' });
-    } finally {
+      toast({
+        title: '預覽生成失敗',
+        description: '無法載入圖片或生成預覽',
+        variant: 'destructive'
+      });
       setIsLoading(false);
     }
   };
@@ -108,7 +129,6 @@ const CardPreview: React.FC = () => {
   );
 };
 
-// Alignment selector component
 const AlignmentSelector: React.FC<{
   value: Alignment;
   onChange: (value: Alignment) => void;
@@ -138,7 +158,6 @@ const AlignmentSelector: React.FC<{
 const CardSettingsTab: React.FC = () => {
   const { settings, setSettings, items, shuffleItems } = useBingo();
   
-  // Handle unit conversion
   const handleUnitChange = (newUnit: Unit) => {
     const oldUnit = settings.unit;
     
@@ -168,7 +187,6 @@ const CardSettingsTab: React.FC = () => {
     }));
   };
 
-  // Handle paper size change
   const handlePaperSizeChange = (newSize: PaperSize) => {
     if (newSize === 'Custom') {
       setSettings(prev => ({
@@ -191,7 +209,6 @@ const CardSettingsTab: React.FC = () => {
     }));
   };
 
-  // Handle orientation change
   const handleOrientationChange = (newOrientation: Orientation) => {
     if (settings.paperSize === 'Custom' || newOrientation === settings.orientation) {
       setSettings(prev => ({
@@ -210,7 +227,6 @@ const CardSettingsTab: React.FC = () => {
     }));
   };
 
-  // Handle margin linking
   const handleMarginChange = (margin: keyof typeof settings.margins, value: number) => {
     if (margin === 'linked') {
       setSettings(prev => ({
@@ -245,7 +261,6 @@ const CardSettingsTab: React.FC = () => {
     }
   };
 
-  // Generate PDF
   const handleGeneratePDF = () => {
     const selectedItems = items.filter(item => item.selected);
     if (selectedItems.length === 0) {
@@ -293,7 +308,6 @@ const CardSettingsTab: React.FC = () => {
     }
   };
 
-  // Calculate table size based on other settings
   const tableHeight = settings.height - 
                      settings.margins.top - 
                      settings.margins.bottom - 

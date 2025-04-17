@@ -240,7 +240,7 @@ export function renderBingoCardPreview(
             } else {
               // Placeholder for missing images
               ctx.fillStyle = '#e0e0e0';
-              ctx.fillRect(imgX, imgY, imgWidth, imgHeight);
+              ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
             }
           } else if (settings.table.contentType !== 'image-only') {
             // If no image available or not needed, draw placeholder
