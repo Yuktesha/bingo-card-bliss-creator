@@ -1,7 +1,8 @@
 // Utilities for PDF generation
 import jsPDF from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
-import { renderBingoCardPreview, generateBingoCards } from './bingo';
+import { renderBingoCardPreview, renderBingoCardPreviewAsync } from './bingo';
+import { generateBingoCards } from './bingo/cardGenerator';
 
 /**
  * Calculates dimensions in points based on unit and value
@@ -303,14 +304,28 @@ export async function generateBingoCardPDF(
                   
                   // Truncate text if needed
                   const displayText = item.text.length > 12 ? item.text.substring(0, 12) + '...' : item.text;
-                  doc.text(displayText, textX, textY);
+                  
+                  if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
+                    doc.text(displayText, x + (cellWidth / 2), textY, { align: 'center' });
+                  } else if (alignment.includes('right')) {
+                    doc.text(displayText, x + cellWidth - cellPadding, textY, { align: 'right' });
+                  } else {
+                    doc.text(displayText, textX, textY);
+                  }
                 }
               } else {
                 // Fallback to text if no image
                 doc.setFontSize(10);
                 doc.setTextColor('#000000');
                 const textY = y + (cellHeight / 2);
-                doc.text(item.text, contentX, textY);
+                
+                if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
+                  doc.text(item.text, x + (cellWidth / 2), textY, { align: 'center' });
+                } else if (alignment.includes('right')) {
+                  doc.text(item.text, x + cellWidth - cellPadding, textY, { align: 'right' });
+                } else {
+                  doc.text(item.text, contentX, textY);
+                }
               }
             }
           }

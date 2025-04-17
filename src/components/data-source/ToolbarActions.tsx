@@ -3,8 +3,8 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
 import { processFiles } from '@/utils/fileUtils';
-import { FolderOpen, Shuffle, FileDown, FileUp } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { FolderOpen, Shuffle, FileDown, FileUp, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { ImportDataDialog } from '../ImportDataDialog';
 
 export const ToolbarActions: React.FC = () => {
@@ -34,7 +34,16 @@ export const ToolbarActions: React.FC = () => {
   const handleExportData = () => {
     try {
       // Export to JSON format for now
-      const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+      const exportData = {
+        items: items.map(item => ({
+          id: item.id,
+          image: item.image || "",
+          text: item.text,
+          selected: item.selected ? 1 : 0
+        }))
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -48,6 +57,19 @@ export const ToolbarActions: React.FC = () => {
     } catch (error) {
       console.error('Error exporting data:', error);
       toast.error('資料匯出失敗');
+    }
+  };
+
+  // Clear all data
+  const handleClearData = () => {
+    if (items.length === 0) {
+      toast.info('目前沒有資料可清除');
+      return;
+    }
+
+    if (confirm('確定要清除所有資料嗎？此操作無法恢復。')) {
+      setItems([]);
+      toast.success('所有資料已清除');
     }
   };
 
@@ -78,6 +100,15 @@ export const ToolbarActions: React.FC = () => {
         >
           <Shuffle size={16} />
           隨機排列
+        </Button>
+
+        <Button 
+          onClick={handleClearData}
+          variant="destructive"
+          className="flex items-center gap-2"
+        >
+          <Trash2 size={16} />
+          清除資料
         </Button>
       </div>
       

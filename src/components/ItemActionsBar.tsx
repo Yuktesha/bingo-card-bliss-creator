@@ -6,19 +6,28 @@ import {
   Trash, 
   Shuffle, 
   FileDown,
-  FileUp
+  FileJson
 } from 'lucide-react';
 import { useBingo } from '@/contexts/BingoContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { ImportDataDialog } from './ImportDataDialog';
 
 export const ItemActionsBar: React.FC = () => {
   const { items, setItems, shuffleItems } = useBingo();
-  const { toast } = useToast();
-
+  
   const handleExport = () => {
     try {
-      const dataStr = JSON.stringify(items, null, 2);
+      // Export to JSON format with improved structure
+      const exportData = {
+        items: items.map(item => ({
+          id: item.id,
+          image: item.image || "",
+          text: item.text,
+          selected: item.selected ? 1 : 0
+        }))
+      };
+      
+      const dataStr = JSON.stringify(exportData, null, 2);
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
       const exportFileDefaultName = `bingo-items-${new Date().toISOString().slice(0, 10)}.json`;
@@ -28,17 +37,10 @@ export const ItemActionsBar: React.FC = () => {
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
       
-      toast({
-        title: '資料匯出成功',
-        description: '已儲存至下載資料夾'
-      });
+      toast.success('資料匯出成功');
     } catch (error) {
       console.error('Export error:', error);
-      toast({
-        title: '資料匯出失敗',
-        description: '請稍後再試',
-        variant: 'destructive'
-      });
+      toast.error('資料匯出失敗，請稍後再試');
     }
   };
   
@@ -56,20 +58,12 @@ export const ItemActionsBar: React.FC = () => {
   const removeSelectedItems = () => {
     const selectedIds = items.filter(item => item.selected).map(item => item.id);
     if (selectedIds.length === 0) {
-      toast({
-        title: '請先選擇項目',
-        description: '請選擇要刪除的項目',
-        variant: 'default'
-      });
+      toast.warning('請先選擇項目');
       return;
     }
     
     setItems(prev => prev.filter(item => !item.selected));
-    
-    toast({
-      title: '項目已刪除',
-      description: `已刪除 ${selectedIds.length} 個項目`
-    });
+    toast.success(`已刪除 ${selectedIds.length} 個項目`);
   };
 
   return (
@@ -124,4 +118,3 @@ export const ItemActionsBar: React.FC = () => {
     </div>
   );
 };
-
