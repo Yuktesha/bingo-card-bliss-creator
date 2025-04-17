@@ -1,7 +1,7 @@
-
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { setupPDFFonts } from '@/utils/bingo/fontUtils';
+import { renderCell } from './cellRenderer';
 
 /**
  * Renders a vector-based bingo card directly in the PDF
@@ -103,92 +103,21 @@ async function renderTable(
       }
       
       if (itemIndex < selectedItems.length) {
-        await renderCell(doc, selectedItems[itemIndex++], settings, x, y, cellWidth, cellHeight);
+        await renderCell(
+          doc,
+          selectedItems[itemIndex++],
+          settings,
+          x,
+          y,
+          cellWidth,
+          cellHeight,
+          2
+        );
       }
     }
   }
   
   return startY + tableHeight + settings.sectionSpacing;
-}
-
-async function renderCell(
-  doc: jsPDF,
-  item: BingoCardItem,
-  settings: BingoCardSettings,
-  x: number,
-  y: number,
-  width: number,
-  height: number
-): Promise<void> {
-  const cellPadding = 2;
-  const contentWidth = width - (2 * cellPadding);
-  const alignment = settings.table.contentAlignment;
-  
-  if (settings.table.contentType === 'text-only') {
-    doc.setFontSize(10);
-    doc.setTextColor('#000000');
-    doc.setFont('sans-serif');
-    
-    let textY = y + (height / 2);
-    if (alignment.includes('top')) {
-      textY = y + cellPadding + 3;
-    } else if (alignment.includes('bottom')) {
-      textY = y + height - cellPadding - 3;
-    }
-    
-    const displayText = item.text.length > 15 ? item.text.substring(0, 15) + '...' : item.text;
-    
-    if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
-      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
-    } else if (alignment.includes('right')) {
-      doc.text(displayText, x + width - cellPadding, textY, { align: 'right' });
-    } else {
-      doc.text(displayText, x + cellPadding, textY);
-    }
-  } else if (item.image) {
-    await renderCellWithImage(doc, item, settings, x, y, width, height, cellPadding);
-  }
-}
-
-async function renderCellWithImage(
-  doc: jsPDF,
-  item: BingoCardItem,
-  settings: BingoCardSettings,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  padding: number
-): Promise<void> {
-  const imgX = x + padding;
-  const imgY = y + padding;
-  const imgWidth = width - (2 * padding);
-  const imgHeight = height - (2 * padding);
-  
-  doc.addImage(
-    item.image,
-    'PNG',
-    imgX,
-    imgY,
-    imgWidth,
-    imgHeight
-  );
-  
-  if (settings.table.contentType === 'image-text') {
-    doc.setFontSize(8);
-    doc.setTextColor('#000000');
-    
-    const textY = y + height - padding - 3;
-    const displayText = item.text.length > 12 ? item.text.substring(0, 12) + '...' : item.text;
-    
-    if (settings.table.contentAlignment.includes('center')) {
-      doc.text(displayText, x + (width / 2), textY, { align: 'center' });
-    } else if (settings.table.contentAlignment.includes('right')) {
-      doc.text(displayText, x + width - padding, textY, { align: 'right' });
-    } else {
-      doc.text(displayText, x + padding, textY);
-    }
-  }
 }
 
 async function renderFooter(
