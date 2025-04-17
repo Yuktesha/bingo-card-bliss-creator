@@ -6,60 +6,27 @@ import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
-import { Download, Loader2, Check, RefreshCw } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { loadPDFFonts } from '@/utils/bingo';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { setupPDFFonts } from '@/utils/bingo';
 
 const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [useHighResolution, setUseHighResolution] = useState(true);
-  const [isFontLoaded, setIsFontLoaded] = useState(false);
-  const [fontLoadingStatus, setFontLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [fontSetupDone, setFontSetupDone] = useState(false);
   
-  // 預先載入亞洲字體，確保正確顯示中文
+  // 設置系統字型使用
   useEffect(() => {
-    const preloadFonts = async () => {
-      try {
-        setFontLoadingStatus('loading');
-        const loaded = await loadPDFFonts();
-        setIsFontLoaded(loaded);
-        setFontLoadingStatus(loaded ? 'success' : 'error');
-        console.log('Font preloading completed, status:', loaded);
-      } catch (error) {
-        console.error('Font preloading failed:', error);
-        setFontLoadingStatus('error');
-      }
+    const prepareForPDF = async () => {
+      const success = await setupPDFFonts();
+      setFontSetupDone(success);
+      console.log('PDF system font setup completed');
     };
     
-    preloadFonts();
+    prepareForPDF();
   }, []);
-
-  // 手動重新載入字體的功能
-  const handleReloadFont = async () => {
-    try {
-      setFontLoadingStatus('loading');
-      const loaded = await loadPDFFonts();
-      setIsFontLoaded(loaded);
-      setFontLoadingStatus(loaded ? 'success' : 'error');
-      
-      toast({
-        title: loaded ? '字體載入成功' : '字體載入失敗',
-        description: loaded ? '亞洲字體已成功載入，PDF中將可正確顯示中文' : '無法載入亞洲字體，請檢查網路連接',
-        variant: loaded ? 'default' : 'destructive'
-      });
-    } catch (error) {
-      console.error('Font reload failed:', error);
-      setFontLoadingStatus('error');
-      toast({
-        title: '字體載入失敗',
-        description: '發生錯誤，請稍後再試',
-        variant: 'destructive'
-      });
-    }
-  };
   
   const handleGeneratePDF = async () => {
     const selectedItems = items.filter(item => item.selected);
@@ -85,18 +52,14 @@ const ExportSettings: React.FC = () => {
     try {
       setIsGeneratingPDF(true);
       
-      // 再次確保字體已加載，即使預加載失敗
-      if (!isFontLoaded) {
-        await loadPDFFonts();
-      }
-      
       // 生成PDF並下載
       const pdfBlob = await generateBingoCardPDFAsync(
         items,
         settings,
         settings.export.numberOfCards,
         {
-          highResolution: useHighResolution
+          highResolution: useHighResolution,
+          useSystemFonts: true // 使用系統字型
         }
       );
       
@@ -132,31 +95,6 @@ const ExportSettings: React.FC = () => {
       <h3 className="text-lg font-medium mb-4">PDF匯出</h3>
       
       <div className="space-y-4">
-        {fontLoadingStatus === 'success' && (
-          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
-            <Check size={16} />
-            已載入亞洲字體支援
-          </div>
-        )}
-        
-        {fontLoadingStatus === 'error' && (
-          <Alert variant="destructive">
-            <AlertTitle>字體載入失敗</AlertTitle>
-            <AlertDescription className="flex flex-col gap-2">
-              <div>未能成功載入亞洲字體。PDF中的中文可能無法正確顯示。</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReloadFont}
-                className="flex items-center gap-1 self-start"
-              >
-                <RefreshCw size={14} />
-                重新嘗試載入
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        
         <div className="space-y-2">
           <Label>遊戲卡數量</Label>
           <Input
@@ -185,23 +123,19 @@ const ExportSettings: React.FC = () => {
         </div>
         
         <div className="text-xs text-muted-foreground pb-2">
-          使用向量繪圖可產生更清晰的文字和線條，並支援中文顯示。圖片仍然為點陣圖，解析度為300 DPI。
+          使用向量繪圖可產生更清晰的文字和線條。圖片仍然為點陣圖，解析度為300 DPI。
+          PDF將使用系統預設字型，支援中文顯示。
         </div>
         
         <Button 
           onClick={handleGeneratePDF} 
           className="w-full flex items-center justify-center gap-2"
-          disabled={isGeneratingPDF || fontLoadingStatus === 'loading'}
+          disabled={isGeneratingPDF}
         >
           {isGeneratingPDF ? (
             <>
               <Loader2 size={16} className="animate-spin" />
               生成中...
-            </>
-          ) : fontLoadingStatus === 'loading' ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              載入字型...
             </>
           ) : (
             <>

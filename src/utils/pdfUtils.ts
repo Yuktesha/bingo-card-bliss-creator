@@ -1,7 +1,7 @@
 // 實用程序，用於 PDF 生成
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
-import { renderBingoCardPreview, renderBingoCardPreviewAsync, loadPDFFonts } from './bingo';
+import { renderBingoCardPreview, renderBingoCardPreviewAsync } from './bingo';
 import { generateBingoCards } from './bingo/cardGenerator';
 
 /**
@@ -91,14 +91,6 @@ export async function generateBingoCardPDF(
   console.log('PDF Generation - Items count:', selectedItems.length);
   console.log('PDF Generation - Cards to generate:', numberOfCards);
   
-  // 確保亞洲字體已預先載入
-  try {
-    await loadPDFFonts();
-    console.log('PDF fonts loaded for PDF generation');
-  } catch (error) {
-    console.warn('Failed to load PDF fonts, will attempt to use fallback:', error);
-  }
-  
   // 轉換單位以與 jsPDF 兼容
   const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
   
@@ -108,15 +100,6 @@ export async function generateBingoCardPDF(
     unit: pdfUnit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
   });
-  
-  // 設置字體以支持亞洲字符
-  try {
-    console.log('Setting NotoSansTC font for document');
-    doc.setFont('NotoSansTC');
-  } catch (e) {
-    console.error('Error setting font:', e);
-    // 如果無法設定字體，保持靜默並繼續使用預設字體
-  }
   
   // 定義邊距
   const margin = {
@@ -157,10 +140,9 @@ export async function generateBingoCardPDF(
           doc.rect(margin.left, currentY, availableWidth, titleHeight, 'F');
         }
         
-        // 標題文本 - 明確設置標題的字體
+        // 標題文本 - 使用系統字體
         doc.setTextColor(settings.title.color || '#000000');
         doc.setFontSize(settings.title.fontSize);
-        doc.setFont('NotoSansTC');
         
         // 文本對齊
         let titleX = margin.left;
@@ -222,11 +204,6 @@ export async function generateBingoCardPDF(
               // 文字模式 - 每次繪製前重新設定字體確保正確使用中文字體
               doc.setFontSize(10);
               doc.setTextColor('#000000');
-              try {
-                doc.setFont('NotoSansTC');
-              } catch (e) {
-                console.error('Error setting font for text cell:', e);
-              }
               
               // Calculate text position
               let textY = y + (cellHeight / 2);
@@ -296,11 +273,6 @@ export async function generateBingoCardPDF(
                 if (settings.table.contentType === 'image-text') {
                   doc.setFontSize(8);
                   doc.setTextColor('#000000');
-                  try {
-                    doc.setFont('NotoSansTC');
-                  } catch (e) {
-                    console.error('Error setting font for image-text:', e);
-                  }
                 
                   // Position text based on image position
                   let textX = contentX;
@@ -345,7 +317,6 @@ export async function generateBingoCardPDF(
                 // Fallback to text if no image
                 doc.setFontSize(10);
                 doc.setTextColor('#000000');
-                doc.setFont('NotoSansTC');
                 const textY = y + (cellHeight / 2);
                 
                 if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
@@ -375,11 +346,6 @@ export async function generateBingoCardPDF(
         // 頁腳文本 - 確保字體設置
         doc.setTextColor(settings.footer.color || '#000000');
         doc.setFontSize(settings.footer.fontSize);
-        try {
-          doc.setFont('NotoSansTC');
-        } catch (e) {
-          console.error('Error setting font for footer:', e);
-        }
         
         // Text alignment
         let footerX = margin.left;
@@ -452,6 +418,7 @@ export async function generateBingoCardPDFAsync(
     cardsPerPage?: number;
     includeInstructions?: boolean;
     highResolution?: boolean;
+    useSystemFonts?: boolean;
   }
 ): Promise<Blob> {
   // Default options
@@ -460,6 +427,7 @@ export async function generateBingoCardPDFAsync(
     cardsPerPage: 1,
     includeInstructions: false,
     highResolution: true,
+    useSystemFonts: true,
     ...options
   };
   
@@ -471,7 +439,8 @@ export async function generateBingoCardPDFAsync(
       settings,
       numberOfCards,
       unit: settings.unit,
-      highResolution: opts.highResolution
+      highResolution: opts.highResolution,
+      useSystemFonts: opts.useSystemFonts
     });
     
     return await generateBingoCardPDF(items, settings, numberOfCards);

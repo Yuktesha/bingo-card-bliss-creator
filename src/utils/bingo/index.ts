@@ -7,4 +7,4 @@ export {
 } from './previewRenderer';
 
 // Additional export for font utilities
-export { loadPDFFonts } from './fontUtils';
+export { setupPDFFonts } from './fontUtils';
