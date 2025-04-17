@@ -2,8 +2,8 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
-import { processFiles, parseSpreadsheet } from '@/utils/fileUtils';
-import { FolderOpen, Shuffle, FileDown, Upload } from 'lucide-react';
+import { processFiles } from '@/utils/fileUtils';
+import { FolderOpen, Shuffle, FileDown, FileUp } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { ImportDataDialog } from '../ImportDataDialog';
 
@@ -72,8 +72,6 @@ export const ToolbarActions: React.FC = () => {
           </Button>
         </div>
         
-        <ImportDataDialog />
-        
         <Button 
           onClick={shuffleItems}
           className="flex items-center gap-2"
@@ -95,6 +93,8 @@ export const ToolbarActions: React.FC = () => {
           <FileDown size={16} />
           匯出資料
         </Button>
+        
+        <ImportDataDialog />
       </div>
     </div>
   );
