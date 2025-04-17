@@ -10,8 +10,9 @@ import { jsPDF } from 'jspdf';
  */
 export async function loadPDFFonts(): Promise<boolean> {
   try {
-    // We're using the Noto Sans CJK font which has good support for Chinese, Japanese, and Korean
-    const fontUrl = 'https://cdn.jsdelivr.net/npm/@compactd/noto-sans-cjk-tc@0.2.0/fonts/NotoSansCJKtc-Regular.ttf';
+    // Use a more reliable CDN for Noto Sans CJK font
+    // Google Fonts CDN for Noto Sans TC (Traditional Chinese)
+    const fontUrl = 'https://fonts.gstatic.com/s/notosanstc/v26/XLYgIZAzeuabf6qtPgLUX9vxAHys.otf';
     
     console.log('Loading Asian font for PDF...');
     
@@ -26,12 +27,12 @@ export async function loadPDFFonts(): Promise<boolean> {
     
     // Add the font to jsPDF
     jsPDF.API.events.push(['addFonts', function() {
-      console.log('Adding NotoSansCJK font to jsPDF...');
-      this.addFileToVFS('NotoSansCJKtc-Regular.ttf', fontBuffer);
-      this.addFont('NotoSansCJKtc-Regular.ttf', 'NotoSansCJK', 'normal');
+      console.log('Adding NotoSansTC font to jsPDF...');
+      this.addFileToVFS('NotoSansTC-Regular.otf', fontBuffer);
+      this.addFont('NotoSansTC-Regular.otf', 'NotoSansTC', 'normal');
       
-      // Make NotoSansCJK the default font
-      this.setFont('NotoSansCJK');
+      // Make NotoSansTC the default font
+      this.setFont('NotoSansTC');
     }]);
     
     console.log('Asian font loaded successfully');

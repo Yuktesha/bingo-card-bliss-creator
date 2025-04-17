@@ -105,7 +105,7 @@ export async function generateBingoCardPDF(
   });
   
   // Set font to support Asian characters - make it explicit for all text
-  doc.setFont('NotoSansCJK');
+  doc.setFont('NotoSansTC');  // Updated font name
   
   // Define margins
   const margin = {
@@ -149,7 +149,7 @@ export async function generateBingoCardPDF(
         // Title text - explicitly set font for title
         doc.setTextColor(settings.title.color || '#000000');
         doc.setFontSize(settings.title.fontSize);
-        doc.setFont('NotoSansCJK');
+        doc.setFont('NotoSansTC');  // Updated font name
         
         // Text alignment
         let titleX = margin.left;
@@ -211,7 +211,7 @@ export async function generateBingoCardPDF(
               // Text only - ensure font is set
               doc.setFontSize(10);
               doc.setTextColor('#000000');
-              doc.setFont('NotoSansCJK');
+              doc.setFont('NotoSansTC');  // Updated font name
               
               // Calculate text position
               let textY = y + (cellHeight / 2);
@@ -281,7 +281,7 @@ export async function generateBingoCardPDF(
                 if (settings.table.contentType === 'image-text') {
                   doc.setFontSize(8);
                   doc.setTextColor('#000000');
-                  doc.setFont('NotoSansCJK');  // Ensure font is set for image captions
+                  doc.setFont('NotoSansTC');  // Ensure font is set for image captions
                 
                   // Position text based on image position
                   let textX = contentX;
@@ -326,7 +326,7 @@ export async function generateBingoCardPDF(
                 // Fallback to text if no image
                 doc.setFontSize(10);
                 doc.setTextColor('#000000');
-                doc.setFont('NotoSansCJK');
+                doc.setFont('NotoSansTC');
                 const textY = y + (cellHeight / 2);
                 
                 if (alignment.includes('center') && !alignment.includes('top') && !alignment.includes('bottom')) {
@@ -356,7 +356,7 @@ export async function generateBingoCardPDF(
         // Footer text
         doc.setTextColor(settings.footer.color || '#000000');
         doc.setFontSize(settings.footer.fontSize);
-        doc.setFont('NotoSansCJK');  // Ensure font is set for footer
+        doc.setFont('NotoSansTC');  // Ensure font is set for footer
         
         // Text alignment
         let footerX = margin.left;
