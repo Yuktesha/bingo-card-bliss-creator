@@ -10,19 +10,24 @@ const CardPreview: React.FC = () => {
   const { settings, items } = useBingo();
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
   const refreshPreview = async () => {
     setIsLoading(true);
+    setError(null);
     try {
+      console.log('Generating bingo card preview...');
       const dataUrl = await renderBingoCardPreviewAsync(items, settings);
       setPreviewSrc(dataUrl);
-    } catch (error) {
+      console.log('Preview generation completed successfully');
+    } catch (error: any) {
       console.error('Preview generation error:', error);
       setPreviewSrc(null);
+      setError(error?.message || '無法載入圖片或生成預覽');
       toast({
         title: '預覽生成失敗',
-        description: '無法載入圖片或生成預覽',
+        description: error?.message || '無法載入圖片或生成預覽',
         variant: 'destructive'
       });
     } finally {
@@ -63,8 +68,9 @@ const CardPreview: React.FC = () => {
             variant="outline" 
             className="flex items-center gap-1"
             onClick={refreshPreview}
+            disabled={isLoading}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
             重整預覽
           </Button>
         </div>
@@ -77,6 +83,17 @@ const CardPreview: React.FC = () => {
               <RefreshCw size={24} />
             </div>
             <span>載入預覽中...</span>
+          </div>
+        ) : error ? (
+          <div className="text-destructive flex flex-col items-center">
+            <span>預覽生成失敗：{error}</span>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={refreshPreview}
+            >
+              重試
+            </Button>
           </div>
         ) : previewSrc ? (
           <img 
