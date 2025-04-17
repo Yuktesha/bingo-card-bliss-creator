@@ -3,8 +3,18 @@ import React from 'react';
 import { ToolbarActions } from './data-source/ToolbarActions';
 import { ItemsTable } from './data-source/ItemsTable';
 import { ItemPreview } from './data-source/ItemPreview';
+import { useBingo } from '@/contexts/BingoContext';
 
 const DataSourceTab: React.FC = () => {
+  // Use a try-catch to validate if the BingoContext is available
+  try {
+    // This will throw an error if the component is not within a BingoProvider
+    useBingo();
+  } catch (error) {
+    console.error("DataSourceTab must be used within a BingoProvider", error);
+    return <div className="p-4 text-red-500">Error: BingoProvider not found</div>;
+  }
+
   return (
     <div className="flex flex-col space-y-4 h-full">
       <div className="flex justify-between items-center">
