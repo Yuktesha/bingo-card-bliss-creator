@@ -54,7 +54,8 @@ export function renderTableSection(
           y: cellY,
           width: cellWidth,
           height: cellHeight,
-          scale
+          scale,
+          padding: 5 * scale // Add padding directly here
         });
       }
     }
@@ -69,6 +70,7 @@ interface CellRenderOptions {
   width: number;
   height: number;
   scale: number;
+  padding: number; // Add padding property to the interface
 }
 
 function renderCell(
@@ -76,8 +78,7 @@ function renderCell(
   settings: BingoCardSettings,
   options: CellRenderOptions
 ): void {
-  const { item, img, x, y, width, height, scale } = options;
-  const padding = 5 * scale;
+  const { item, img, x, y, width, height, scale, padding } = options;
   
   const renderContext = { ctx, scale, settings, padding };
   const renderOptions = { 
@@ -101,7 +102,7 @@ function renderCell(
       break;
       
     case 'image-text':
-      renderImageTextCell(ctx, settings, { ...options, padding });
+      renderImageTextCell(ctx, settings, options);
       break;
   }
 }
@@ -151,19 +152,19 @@ function renderImageTextCell(
       });
       break;
       
-    case 'center':
+    case 'center': {
       drawImageCellWithAlignment(renderContext, { x, y, width, height, img, padding });
       
       // Draw semi-transparent background for text
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       const textPadding = padding * 1.5;
-      const textWidth = width - (textPadding * 2);
+      const centerTextWidth = width - (textPadding * 2); // Renamed to avoid conflict
       const textAreaHeight = height / 3;
       
       ctx.fillRect(
         x + textPadding,
         y + (height - textAreaHeight) / 2,
-        textWidth,
+        centerTextWidth,
         textAreaHeight
       );
       
@@ -173,21 +174,22 @@ function renderImageTextCell(
         padding
       });
       break;
+    }
       
     case 'left':
-    case 'right':
+    case 'right': {
       const imgWidth = width * 0.6;
-      const textWidth = width * 0.4;
+      const sideTextWidth = width * 0.4; // Renamed to avoid conflict
       const isLeft = settings.table.textImagePosition === 'left';
       
       if (isLeft) {
         drawVerticalText(renderContext, item.text, {
-          x, y, width: textWidth, height,
+          x, y, width: sideTextWidth, height,
           fontSize: 10 * scale / 2,
           padding
         });
         drawImageCellWithAlignment(renderContext, {
-          x: x + textWidth, y, width: imgWidth, height,
+          x: x + sideTextWidth, y, width: imgWidth, height,
           img, padding
         });
       } else {
@@ -196,11 +198,12 @@ function renderImageTextCell(
           img, padding
         });
         drawVerticalText(renderContext, item.text, {
-          x: x + imgWidth, y, width: textWidth, height,
+          x: x + imgWidth, y, width: sideTextWidth, height,
           fontSize: 10 * scale / 2,
           padding
         });
       }
       break;
+    }
   }
 }
