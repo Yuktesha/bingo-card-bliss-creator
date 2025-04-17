@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -40,6 +39,7 @@ const FooterSettings: React.FC = () => {
                   text: e.target.value
                 }
               }))}
+              placeholder="Yuktesha Studio程式規劃 + LovAble撰寫開發"
             />
           </div>
           

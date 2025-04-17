@@ -39,7 +39,7 @@ export function renderBingoCardPreview(
   if (cardIndex > 0) {
     // Generate all cards and take the one at cardIndex
     const cards = generateBingoCards(items, settings, cardIndex + 1);
-    cardItems = cards[cardIndex];
+    cardItems = cards[cardIndex - 1]; // Fix: Adjust the index to match the array (0-based)
   } else {
     // For the preview, just take the first N items
     const cards = generateBingoCards(items, settings, 1);
@@ -88,56 +88,83 @@ export function renderBingoCardPreview(
   ctx.strokeStyle = settings.table.borderColor;
   ctx.lineWidth = settings.table.borderWidth * scale;
   
-  // Draw cells layout and text first
-  let itemIndex = 0;
-  for (let row = 0; row < settings.table.rows; row++) {
-    for (let col = 0; col < settings.table.columns; col++) {
-      // Calculate cell position
-      const x = marginLeft + (col * cellWidth);
-      const y = currentY + (row * cellHeight);
+  // Create a promise to handle image loading and then return the canvas
+  return new Promise<HTMLCanvasElement>((resolve) => {
+    // Load images first
+    loadCardImages(cardItems).then(imageMap => {
+      let itemIndex = 0;
       
-      // Draw cell border
-      ctx.strokeRect(x, y, cellWidth, cellHeight);
-      
-      // Draw cell content if we have enough items
-      if (itemIndex < cardItems.length) {
-        const item = cardItems[itemIndex++];
-        
-        // Always draw text initially
-        drawTextCell(ctx, item.text, x, y, cellWidth, cellHeight, 12 * scale / 2);
-      }
-    }
-  }
-  
-  // Load and render images asynchronously
-  loadCardImages(cardItems).then(imageMap => {
-    // Reset itemIndex for rendering with images
-    itemIndex = 0;
-    
-    // Redraw cells with loaded images
-    for (let row = 0; row < settings.table.rows; row++) {
-      for (let col = 0; col < settings.table.columns; col++) {
-        if (itemIndex < cardItems.length) {
-          const item = cardItems[itemIndex++];
-          const img = imageMap.get(item.id);
+      // Draw all cells with borders
+      for (let row = 0; row < settings.table.rows; row++) {
+        for (let col = 0; col < settings.table.columns; col++) {
+          const x = marginLeft + (col * cellWidth);
+          const y = currentY + (row * cellHeight);
           
-          if (img && (settings.table.contentType === 'image-only' || settings.table.contentType === 'image-text')) {
-            const x = marginLeft + (col * cellWidth);
-            const y = currentY + (row * cellHeight);
+          // Draw cell border
+          ctx.strokeRect(x, y, cellWidth, cellHeight);
+          
+          if (itemIndex < cardItems.length) {
+            const item = cardItems[itemIndex++];
+            const img = imageMap.get(item.id);
             
-            drawImageCell(ctx, img, x, y, cellWidth, cellHeight, 5 * scale);
+            // Draw cell content based on content type
+            if (settings.table.contentType === 'text-only') {
+              // Text only
+              drawTextCell(ctx, item.text, x, y, cellWidth, cellHeight, 12 * scale / 2);
+            } 
+            else if (settings.table.contentType === 'image-only') {
+              // Image only if available
+              if (img) {
+                drawImageCell(ctx, img, x, y, cellWidth, cellHeight, 5 * scale);
+              } else {
+                // Fallback to text if no image
+                drawTextCell(ctx, item.text, x, y, cellWidth, cellHeight, 12 * scale / 2);
+              }
+            }
+            else if (settings.table.contentType === 'image-text') {
+              // Both image and text
+              if (img) {
+                // Calculate space for text based on position
+                let imgHeight = cellHeight * 0.6;
+                let textHeight = cellHeight * 0.4;
+                let imgY = y;
+                let textY = y + imgHeight;
+                
+                if (settings.table.textImagePosition === 'top') {
+                  imgY = y + textHeight;
+                  textY = y;
+                }
+                else if (settings.table.textImagePosition === 'bottom') {
+                  // Default arrangement (text at bottom)
+                }
+                
+                // Draw image in appropriate position
+                drawImageCell(ctx, img, x, imgY, cellWidth, imgHeight, 5 * scale);
+                
+                // Draw text in appropriate position
+                drawTextCell(ctx, item.text, x, textY, cellWidth, textHeight, 10 * scale / 2);
+              } else {
+                // Fallback to text only if no image
+                drawTextCell(ctx, item.text, x, y, cellWidth, cellHeight, 12 * scale / 2);
+              }
+            }
           }
         }
       }
-    }
-  }).catch(error => {
-    console.error('Error loading images:', error);
+      
+      // Draw footer
+      renderFooterSection(ctx, settings, scale, canvas.height, availableWidth);
+      
+      console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
+      resolve(canvas);
+    }).catch(error => {
+      console.error('Error loading images:', error);
+      // Still return the canvas even if image loading fails
+      resolve(canvas);
+    });
   });
   
-  // Draw footer
-  renderFooterSection(ctx, settings, scale, canvas.height, availableWidth);
-  
-  console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
+  // Early return a placeholder canvas while images load
   return canvas;
 }
 
@@ -150,10 +177,10 @@ export async function renderBingoCardPreviewAsync(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
-      const canvas = renderBingoCardPreview(items, settings);
+      const canvasPromise = renderBingoCardPreview(items, settings);
       
-      // Wait a bit to ensure images have loaded
-      setTimeout(() => {
+      // Handle both cases: if the function returns a Promise or directly a canvas
+      Promise.resolve(canvasPromise).then((canvas) => {
         try {
           const dataUrl = canvas.toDataURL('image/png');
           resolve(dataUrl);
@@ -161,7 +188,7 @@ export async function renderBingoCardPreviewAsync(
           console.error('Failed to convert canvas to data URL:', error);
           reject(error);
         }
-      }, 100);
+      });
     } catch (error) {
       console.error('Failed to render preview:', error);
       reject(error);
