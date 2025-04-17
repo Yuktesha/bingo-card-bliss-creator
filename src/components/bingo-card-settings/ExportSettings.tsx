@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateBingoCardPDFAsync } from '@/utils/pdfUtils';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Check } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { loadPDFFonts } from '@/utils/bingo';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
@@ -16,16 +17,20 @@ const ExportSettings: React.FC = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [useHighResolution, setUseHighResolution] = useState(true);
   const [isFontLoaded, setIsFontLoaded] = useState(false);
+  const [fontLoadingStatus, setFontLoadingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   
   // Preload Asian fonts when component mounts
   useEffect(() => {
     const preloadFonts = async () => {
       try {
+        setFontLoadingStatus('loading');
         const loaded = await loadPDFFonts();
         setIsFontLoaded(loaded);
+        setFontLoadingStatus(loaded ? 'success' : 'error');
         console.log('Font preloading completed, status:', loaded);
       } catch (error) {
         console.error('Font preloading failed:', error);
+        setFontLoadingStatus('error');
       }
     };
     
@@ -55,6 +60,11 @@ const ExportSettings: React.FC = () => {
     
     try {
       setIsGeneratingPDF(true);
+      
+      // If the font wasn't preloaded, attempt to load it before generating PDF
+      if (!isFontLoaded) {
+        await loadPDFFonts();
+      }
       
       const pdfBlob = await generateBingoCardPDFAsync(
         items,
@@ -97,6 +107,22 @@ const ExportSettings: React.FC = () => {
       <h3 className="text-lg font-medium mb-4">PDF匯出</h3>
       
       <div className="space-y-4">
+        {fontLoadingStatus === 'success' && (
+          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+            <Check size={16} />
+            已載入亞洲字體支援
+          </div>
+        )}
+        
+        {fontLoadingStatus === 'error' && (
+          <Alert variant="destructive">
+            <AlertTitle>字體載入失敗</AlertTitle>
+            <AlertDescription>
+              未能成功載入亞洲字體。PDF中的中文可能無法正確顯示。
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-y-2">
           <Label>遊戲卡數量</Label>
           <Input
@@ -131,12 +157,17 @@ const ExportSettings: React.FC = () => {
         <Button 
           onClick={handleGeneratePDF} 
           className="w-full flex items-center justify-center gap-2"
-          disabled={isGeneratingPDF}
+          disabled={isGeneratingPDF || fontLoadingStatus === 'loading'}
         >
           {isGeneratingPDF ? (
             <>
               <Loader2 size={16} className="animate-spin" />
               生成中...
+            </>
+          ) : fontLoadingStatus === 'loading' ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              載入字型...
             </>
           ) : (
             <>

@@ -29,6 +29,9 @@ export async function loadPDFFonts(): Promise<boolean> {
       console.log('Adding NotoSansCJK font to jsPDF...');
       this.addFileToVFS('NotoSansCJKtc-Regular.ttf', fontBuffer);
       this.addFont('NotoSansCJKtc-Regular.ttf', 'NotoSansCJK', 'normal');
+      
+      // Make NotoSansCJK the default font
+      this.setFont('NotoSansCJK');
     }]);
     
     console.log('Asian font loaded successfully');
