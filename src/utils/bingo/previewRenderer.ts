@@ -1,4 +1,3 @@
-
 import { BingoCardItem, BingoCardSettings } from "@/types";
 import { generateBingoCards } from "./cardGenerator";
 import { 
@@ -14,13 +13,15 @@ import {
  * @param items 賓果卡項目數組
  * @param settings 賓果卡設定
  * @param cardIndex 可選索引以生成特定卡片（用於PDF生成）
+ * @param dpi 高DPI參數
  */
 export async function renderBingoCardPreview(
   items: BingoCardItem[],
   settings: BingoCardSettings,
-  cardIndex: number = 0
+  cardIndex: number = 0,
+  dpi: number = 300
 ): Promise<HTMLCanvasElement> {
-  console.log('Rendering bingo card preview for card index:', cardIndex);
+  console.log('Rendering bingo card preview with DPI:', dpi);
   console.log('Settings:', settings);
   
   // 過濾選定的項目
@@ -39,22 +40,25 @@ export async function renderBingoCardPreview(
   if (cardIndex > 0) {
     // 生成所有卡片並獲取cardIndex的卡片
     const cards = generateBingoCards(items, settings, cardIndex + 1);
-    cardItems = cards[cardIndex - 1]; // 修正：調整索引以匹配數組（基於0）
+    cardItems = cards[cardIndex - 1];
   } else {
     // 對於預覽，只取前N個項目
     const cards = generateBingoCards(items, settings, 1);
     cardItems = cards[0];
   }
   
-  // 創建畫布元素
+  // 創建畫布元素並設置高DPI
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('無法創建畫布上下文');
   
-  // 根據設定設置畫布大小（以毫米為基本單位）
-  const scale = 4; // 放大以獲得更好的質量
+  // 使用DPI計算縮放因子
+  const scale = (dpi / 96) * 4; // 96 is default screen DPI, multiply by 4 for better quality
   canvas.width = settings.width * scale;
   canvas.height = settings.height * scale;
+  
+  // 為高DPI渲染設置比例
+  ctx.scale(scale, scale);
   
   // 繪製白色背景
   ctx.fillStyle = '#ffffff';

@@ -1,4 +1,3 @@
-
 // 實用程序，用於 PDF 生成
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
@@ -114,7 +113,8 @@ export async function generateBingoCardPDF(
   const doc = new jsPDF({
     orientation: settings.orientation,
     unit: pdfUnit,
-    format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
+    format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize,
+    compress: true // 啟用 PDF 壓縮
   });
 
   // Setup font support for CJK characters
@@ -232,7 +232,7 @@ export async function generateBingoCardPDF(
               doc.setFontSize(10);
               doc.setTextColor('#000000');
               
-              // 重設字型以確保CJK支援
+              // 重設��型以確保CJK支援
               if (opts.useCJKSupport) {
                 doc.setFont('sans-serif');
               }
@@ -400,53 +400,50 @@ export async function generateBingoCardPDF(
       console.log(`Card ${cardIndex + 1} generated successfully with vector graphics`);
       
     } catch (error) {
-      console.error(`Failed to render card ${cardIndex + 1}:`, error);
-      needFallbackRendering = true;
+      console.error(`Vector rendering failed for card ${cardIndex + 1}, falling back to raster...`);
       
-      // 如果向量方法失敗，則回退到光柵方法
-      console.log(`Falling back to raster method for card ${cardIndex + 1}`);
       try {
-        // Render the bingo card as raster image (fallback)
-        const canvas = await renderBingoCardPreview(selectedItems, settings, cardIndex);
+        // 使用高解析度點陣化渲染
+        const canvas = await renderBingoCardPreview(items, settings, cardIndex, 300); // 使用 300 DPI
         
-        // High-resolution factor for the image
-        const dpi = 300; // dots per inch
-        const imgQuality = 0.95; // high quality
+        // 將畫布轉換為高品質 JPEG
+        const imgData = canvas.toDataURL('image/jpeg', 0.95); // 使用95%的JPEG品質
         
-        // Convert canvas to an image with high resolution
-        const imgData = canvas.toDataURL('image/jpeg', imgQuality);
-        
-        // Calculate the printable area
+        // 計算可打印區域
         const printableWidth = settings.width - margin.left - margin.right;
         const printableHeight = settings.height - margin.top - margin.bottom;
         
-        // Add the image to the PDF
+        // 將圖像添加到 PDF，使用壓縮選項
         doc.addImage(
-          imgData, 
-          'JPEG', 
-          margin.left, 
-          margin.top, 
-          printableWidth, 
-          printableHeight
+          imgData,
+          'JPEG',
+          margin.left,
+          margin.top,
+          printableWidth,
+          printableHeight,
+          undefined,
+          'MEDIUM' // JPEG 壓縮級別
         );
         
-        console.log(`Card ${cardIndex + 1} generated with raster fallback at ${dpi} DPI`);
+        console.log(`Card ${cardIndex + 1} generated with raster fallback at 300 DPI`);
       } catch (fallbackError) {
-        console.error(`Even fallback failed for card ${cardIndex + 1}:`, fallbackError);
-        // Add error text instead of image
+        console.error(`Fallback rendering failed for card ${cardIndex + 1}:`, fallbackError);
+        // 添加錯誤信息而不是圖像
         doc.setFontSize(12);
         doc.text(`Failed to render card ${cardIndex + 1}. Error: ${error.message}`, margin.left, margin.top + 10);
       }
     }
   }
   
-  // If we had to use fallback rendering, add a note to the PDF
-  if (needFallbackRendering) {
-    console.log('Some cards required fallback raster rendering');
-  }
+  // 設置 PDF 壓縮選項
+  const pdfOptions = {
+    compress: true,
+    precision: 2,
+    userUnit: 1.0
+  };
   
-  // 返回 PDF 作為 blob
-  return doc.output('blob');
+  // 返回壓縮的 PDF blob
+  return doc.output('blob', pdfOptions);
 }
 
 /**

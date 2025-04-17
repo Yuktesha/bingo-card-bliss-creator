@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,6 @@ const ExportSettings: React.FC = () => {
   const [useHighResolution, setUseHighResolution] = useState(true);
   const [fontSetupDone, setFontSetupDone] = useState(false);
   
-  // 設置系統字型使用
   useEffect(() => {
     const prepareForPDF = async () => {
       try {
@@ -57,15 +55,14 @@ const ExportSettings: React.FC = () => {
     try {
       setIsGeneratingPDF(true);
       
-      // 生成PDF並下載
       const pdfBlob = await generateBingoCardPDFAsync(
         items,
         settings,
         settings.export.numberOfCards,
         {
           highResolution: useHighResolution,
-          useSystemFonts: true, // 使用系統字型
-          useCJKSupport: true // 啟用中文日韓文字支援
+          useSystemFonts: true,
+          useCJKSupport: true
         }
       );
       
@@ -129,8 +126,8 @@ const ExportSettings: React.FC = () => {
         </div>
         
         <div className="text-xs text-muted-foreground pb-2">
-          使用向量繪圖可產生更清晰的文字和線條。圖片仍然為點陣圖，解析度為300 DPI。
-          PDF將使用系統預設字型，支援中文顯示。若中文無法正常顯示，程式將嘗試改用內建點陣化方案。
+          使用向量繪圖可產生更清晰的文字和線條。如果中文顯示發生問題，系統會自動切換至
+          300 DPI 的高解析度點陣圖方案。圖片使用高品質 JPEG 壓縮以平衡檔案大小。
         </div>
         
         <Button 
@@ -156,4 +153,3 @@ const ExportSettings: React.FC = () => {
 };
 
 export default ExportSettings;
-
