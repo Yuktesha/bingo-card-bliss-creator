@@ -87,10 +87,13 @@ export function generateBingoCardPDF(
     throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
   }
   
+  // Convert unit for jsPDF compatibility
+  const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
+  
   // Create a new PDF document
   const doc = new jsPDF({
     orientation: settings.orientation,
-    unit: settings.unit,
+    unit: pdfUnit,
     format: settings.paperSize === 'Custom' ? [settings.width, settings.height] : settings.paperSize
   });
   
