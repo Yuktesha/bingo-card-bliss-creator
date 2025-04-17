@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+        bingo: {
+          title: '#8B5CF6',
+          tableHeader: '#9b87f5',
+          tableBorder: '#222222',
+          tableCell: '#FFFFFF',
+          tableCellHover: '#F6F6F7',
+          tableText: '#222222',
+          footer: '#6E59A5',
+        },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
