@@ -3,14 +3,12 @@ import React from 'react';
 import { ToolbarActions } from './data-source/ToolbarActions';
 import { ItemsTable } from './data-source/ItemsTable';
 import { ItemPreview } from './data-source/ItemPreview';
-import { SaveLoadSettings } from './SaveLoadSettings';
 
 const DataSourceTab: React.FC = () => {
   return (
     <div className="flex flex-col space-y-4 h-full">
       <div className="flex justify-between items-center">
         <ToolbarActions />
-        <SaveLoadSettings />
       </div>
       
       <div className="flex flex-grow gap-4">

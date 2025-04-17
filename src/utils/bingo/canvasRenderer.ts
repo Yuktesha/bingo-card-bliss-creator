@@ -1,4 +1,3 @@
-
 import { BingoCardItem, BingoCardSettings } from "@/types";
 
 /**
@@ -134,8 +133,6 @@ export function renderFooterSection(
   // 應用頁尾對齊
   const alignment = settings.footer.alignment;
   let footerX;
-  // 移除這裡的footerY重新宣告，因為我們已經在上面宣告為let
-  
   // 水平對齊
   if (alignment.includes('left')) {
     ctx.textAlign = 'left';

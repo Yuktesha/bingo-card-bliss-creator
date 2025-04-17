@@ -91,12 +91,12 @@ export const ImportDataDialog: React.FC = () => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
+          size="sm" 
           variant="outline" 
-          size="sm"
           className="flex items-center gap-1"
         >
-          <Upload size={14} />
-          匯入資料
+          <Upload size={16} />
+          <span className="hidden sm:inline">匯入資料</span>
         </Button>
       </DialogTrigger>
       <DialogContent>

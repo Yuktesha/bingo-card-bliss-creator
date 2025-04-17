@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -7,7 +6,7 @@ import {
   FolderOpen, 
   Shuffle, 
   Trash, 
-  Import
+  Upload
 } from 'lucide-react';
 import { useBingo } from '@/contexts/BingoContext';
 import { useToast } from '@/hooks/use-toast';
