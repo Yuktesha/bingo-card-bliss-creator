@@ -31,7 +31,7 @@ const Index = () => {
         </div>
         
         <footer className="bg-bingo-footer text-white p-2 text-center text-sm">
-          Yuktesha Studio程式規劃 + WindSurf AI撰寫開發
+          Yuktesha Studio程式規劃 + LovAble撰寫開發
         </footer>
       </div>
     </BingoProvider>

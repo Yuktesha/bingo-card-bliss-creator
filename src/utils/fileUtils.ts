@@ -1,5 +1,6 @@
 
 // Utilities for file handling
+import { BingoCardItem } from '@/types';
 
 /**
  * Parses a file path to extract the file name without extension

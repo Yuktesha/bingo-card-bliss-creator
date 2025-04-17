@@ -1,4 +1,3 @@
-
 import { BingoCardItem, BingoCardSettings } from "@/types";
 import { shuffleArray } from "./fileUtils";
 
@@ -50,6 +49,9 @@ export function renderBingoCardPreview(
   settings: BingoCardSettings,
   cardIndex: number = 0
 ): HTMLCanvasElement {
+  console.log('Rendering bingo card preview for card index:', cardIndex);
+  console.log('Settings:', settings);
+  
   // Filter selected items
   const selectedItems = items.filter(item => item.selected);
   
@@ -157,216 +159,119 @@ export function renderBingoCardPreview(
     return Promise.all(imagePromises);
   };
   
-  // Render the bingo card with images
-  const renderWithImages = async () => {
-    const loadedImages = await loadImages();
+  // Draw cells
+  for (let row = 0; row < settings.table.rows; row++) {
+    for (let col = 0; col < settings.table.columns; col++) {
+      // Calculate cell position
+      const x = marginLeft + (col * cellWidth);
+      const y = currentY + (row * cellHeight);
+      
+      // Draw cell border
+      ctx.strokeRect(x, y, cellWidth, cellHeight);
+      
+      // Draw cell content if we have enough items
+      if (itemIndex < cardItems.length) {
+        const item = cardItems[itemIndex++];
+        
+        // Display text in the cell
+        ctx.fillStyle = '#000000';
+        ctx.font = `${12 * scale / 2}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        ctx.fillText(
+          item.text.length > 15 ? item.text.substring(0, 15) + '...' : item.text,
+          x + (cellWidth / 2),
+          y + (cellHeight / 2)
+        );
+      }
+    }
+  }
+  
+  // Draw footer if shown
+  if (settings.footer.show) {
+    const footerY = canvas.height - marginBottom - footerHeight;
+    
+    // Footer background
+    ctx.fillStyle = settings.footer.backgroundColor || '#f0f0f0';
+    ctx.fillRect(
+      marginLeft, 
+      footerY, 
+      canvas.width - marginLeft - marginRight, 
+      footerHeight
+    );
+    
+    // Footer text
+    ctx.fillStyle = settings.footer.color;
+    ctx.font = `${settings.footer.fontSize * scale / 2}px ${settings.footer.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    ctx.fillText(
+      settings.footer.text, 
+      canvas.width / 2, 
+      footerY + footerHeight / 2
+    );
+    
+    console.log('Footer rendered at:', footerY, 'with height:', footerHeight);
+  }
+  
+  // Load and render images asynchronously
+  loadImages().then(loadedImages => {
     const imageMap = new Map(loadedImages.map(item => [item.id, item.img]));
     
-    // Reset itemIndex for rendering
+    // Reset itemIndex for rendering with images
     itemIndex = 0;
     
-    // Draw cells with loaded images
+    // Redraw cells with loaded images
     for (let row = 0; row < settings.table.rows; row++) {
       for (let col = 0; col < settings.table.columns; col++) {
-        // Calculate cell position
-        const x = marginLeft + (col * cellWidth);
-        const y = currentY + (row * cellHeight);
-        
-        // Draw cell border
-        ctx.strokeStyle = settings.table.borderColor;
-        ctx.lineWidth = settings.table.borderWidth * scale;
-        ctx.strokeRect(x, y, cellWidth, cellHeight);
-        
-        // Fill cell background
-        if (settings.table.fillType !== 'none') {
-          ctx.fillStyle = settings.table.fillColor;
-          ctx.fillRect(x, y, cellWidth, cellHeight);
-        }
-        
-        // Draw cell content if we have enough items
         if (itemIndex < cardItems.length) {
           const item = cardItems[itemIndex++];
+          const img = imageMap.get(item.id);
           
-          const contentPadding = {
-            top: settings.table.cellPadding.top * scale,
-            right: settings.table.cellPadding.right * scale,
-            bottom: settings.table.cellPadding.bottom * scale,
-            left: settings.table.cellPadding.left * scale
-          };
-          
-          const contentX = x + contentPadding.left;
-          const contentY = y + contentPadding.top;
-          const contentWidth = cellWidth - contentPadding.left - contentPadding.right;
-          const contentHeight = cellHeight - contentPadding.top - contentPadding.bottom;
-          
-          // Draw image if available and content type requires it
-          if ((settings.table.contentType === 'image-only' || settings.table.contentType === 'image-text') && item.image) {
-            const img = imageMap.get(item.id);
+          if (img && (settings.table.contentType === 'image-only' || settings.table.contentType === 'image-text')) {
+            const x = marginLeft + (col * cellWidth);
+            const y = currentY + (row * cellHeight);
             
-            if (img) {
-              let imgX = contentX;
-              let imgY = contentY;
-              let imgWidth = contentWidth;
-              let imgHeight = contentHeight;
+            try {
+              // Draw the image at the appropriate position based on settings
+              const padding = 5 * scale;
+              const imgWidth = cellWidth - (padding * 2);
+              const imgHeight = cellHeight - (padding * 2);
               
-              // Adjust position and size based on text-image layout
-              if (settings.table.contentType === 'image-text') {
-                switch (settings.table.textImagePosition) {
-                  case 'top':
-                    imgY = contentY + contentHeight * 0.4;
-                    imgHeight = contentHeight * 0.6;
-                    break;
-                  case 'bottom':
-                    imgHeight = contentHeight * 0.6;
-                    break;
-                  case 'left':
-                    imgWidth = contentWidth * 0.6;
-                    break;
-                  case 'right':
-                    imgX = contentX + contentWidth * 0.4;
-                    imgWidth = contentWidth * 0.6;
-                    break;
-                  case 'center':
-                    imgX = contentX + contentWidth * 0.1;
-                    imgY = contentY + contentHeight * 0.1;
-                    imgWidth = contentWidth * 0.8;
-                    imgHeight = contentHeight * 0.8;
-                    break;
-                }
+              // Calculate aspect ratio to maintain proportions
+              const imgRatio = img.width / img.height;
+              const cellRatio = imgWidth / imgHeight;
+              
+              let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+              
+              // Scale to fit while maintaining aspect ratio
+              if (imgRatio > cellRatio) {
+                // Image is wider than cell proportionally
+                drawWidth = imgWidth;
+                drawHeight = imgWidth / imgRatio;
+                offsetY = (imgHeight - drawHeight) / 2;
+              } else {
+                // Image is taller than cell proportionally
+                drawHeight = imgHeight;
+                drawWidth = imgHeight * imgRatio;
+                offsetX = (imgWidth - drawWidth) / 2;
               }
               
-              try {
-                // Calculate aspect ratio to maintain proportions
-                const imgRatio = img.width / img.height;
-                const cellRatio = imgWidth / imgHeight;
-                
-                let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
-                
-                // Scale to fit while maintaining aspect ratio
-                if (imgRatio > cellRatio) {
-                  // Image is wider than cell proportionally
-                  drawWidth = imgWidth;
-                  drawHeight = imgWidth / imgRatio;
-                  offsetY = (imgHeight - drawHeight) / 2;
-                } else {
-                  // Image is taller than cell proportionally
-                  drawHeight = imgHeight;
-                  drawWidth = imgHeight * imgRatio;
-                  offsetX = (imgWidth - drawWidth) / 2;
-                }
-                
-                // Draw the image
-                ctx.drawImage(img, imgX + offsetX, imgY + offsetY, drawWidth, drawHeight);
-              } catch (err) {
-                console.error('Error drawing image:', err);
-                // If image fails to draw, fill with placeholder color
-                ctx.fillStyle = '#e0e0e0';
-                ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
-              }
-            } else {
-              // Placeholder for missing images
-              ctx.fillStyle = '#e0e0e0';
-              ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
+              ctx.drawImage(img, x + padding + offsetX, y + padding + offsetY, drawWidth, drawHeight);
+            } catch (err) {
+              console.error('Error drawing image:', err);
             }
-          } else if (settings.table.contentType !== 'image-only') {
-            // If no image available or not needed, draw placeholder
-            if (settings.table.contentType === 'image-text' && !item.image) {
-              // Draw placeholder for missing image in image-text mode
-              ctx.fillStyle = '#e0e0e0';
-              
-              switch (settings.table.textImagePosition) {
-                case 'top':
-                  ctx.fillRect(contentX, contentY + contentHeight * 0.4, contentWidth, contentHeight * 0.6);
-                  break;
-                case 'bottom':
-                  ctx.fillRect(contentX, contentY, contentWidth, contentHeight * 0.6);
-                  break;
-                case 'left':
-                  ctx.fillRect(contentX, contentY, contentWidth * 0.6, contentHeight);
-                  break;
-                case 'right':
-                  ctx.fillRect(contentX + contentWidth * 0.4, contentY, contentWidth * 0.6, contentHeight);
-                  break;
-                case 'center':
-                  ctx.fillRect(contentX + contentWidth * 0.1, contentY + contentHeight * 0.1, 
-                              contentWidth * 0.8, contentHeight * 0.8);
-                  break;
-              }
-            }
-          }
-          
-          // Draw text
-          if (settings.table.contentType !== 'image-only') {
-            ctx.fillStyle = '#000000';
-            ctx.font = `${12 * scale / 2}px ${settings.title.fontFamily}`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            let textX = x + (cellWidth / 2);
-            let textY = y + (cellHeight / 2);
-            
-            // Adjust position based on text-image layout
-            if (settings.table.contentType === 'image-text') {
-              switch (settings.table.textImagePosition) {
-                case 'top':
-                  textY = y + (cellHeight * 0.2);
-                  break;
-                case 'bottom':
-                  textY = y + (cellHeight * 0.8);
-                  break;
-                case 'left':
-                  textX = x + (cellWidth * 0.2);
-                  break;
-                case 'right':
-                  textX = x + (cellWidth * 0.8);
-                  break;
-                // For center, we'll draw text on top of the image
-                case 'center':
-                  // Keep default position
-                  break;
-              }
-            }
-            
-            ctx.fillText(
-              item.text.length > 10 ? item.text.substring(0, 10) + '...' : item.text,
-              textX,
-              textY
-            );
           }
         }
       }
     }
-    
-    // Draw footer if shown
-    if (settings.footer.show) {
-      const footerY = canvas.height - marginBottom - footerHeight;
-      
-      // Footer background
-      ctx.fillStyle = settings.footer.backgroundColor || '#f0f0f0';
-      ctx.fillRect(
-        marginLeft, 
-        footerY, 
-        canvas.width - marginLeft - marginRight, 
-        footerHeight
-      );
-      
-      // Footer text
-      ctx.fillStyle = settings.footer.color;
-      ctx.font = `${settings.footer.fontSize * scale / 2}px ${settings.footer.fontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      ctx.fillText(
-        settings.footer.text, 
-        canvas.width / 2, 
-        footerY + footerHeight / 2
-      );
-    }
-  };
+  }).catch(error => {
+    console.error('Error loading images:', error);
+  });
   
-  // Start the rendering process
-  renderWithImages();
-  
+  console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
   return canvas;
 }
 
@@ -397,4 +302,3 @@ export async function renderBingoCardPreviewAsync(
     }
   });
 }
-

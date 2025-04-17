@@ -87,6 +87,10 @@ export function generateBingoCardPDF(
     throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
   }
   
+  console.log('PDF Generation - Settings:', settings);
+  console.log('PDF Generation - Items count:', selectedItems.length);
+  console.log('PDF Generation - Cards to generate:', numberOfCards);
+  
   // Convert unit for jsPDF compatibility
   const pdfUnit = settings.unit === 'inch' ? 'in' : settings.unit;
   
@@ -105,6 +109,9 @@ export function generateBingoCardPDF(
     left: settings.margins.left
   };
   
+  console.log('PDF Generation - Margins:', margin);
+  console.log('PDF Generation - Unit:', pdfUnit);
+  
   // Generate multiple cards
   for (let cardIndex = 0; cardIndex < numberOfCards; cardIndex++) {
     if (cardIndex > 0) {
@@ -113,6 +120,7 @@ export function generateBingoCardPDF(
     }
     
     try {
+      console.log(`Generating card ${cardIndex + 1}...`);
       // Render the bingo card
       const canvas = renderBingoCardPreview(selectedItems, settings, cardIndex);
       
@@ -123,6 +131,8 @@ export function generateBingoCardPDF(
       const printableWidth = settings.width - margin.left - margin.right;
       const printableHeight = settings.height - margin.top - margin.bottom;
       
+      console.log('PDF Generation - Printable area:', { width: printableWidth, height: printableHeight });
+      
       // Add the image to the PDF
       doc.addImage(
         imgData, 
@@ -132,6 +142,8 @@ export function generateBingoCardPDF(
         printableWidth, 
         printableHeight
       );
+      
+      console.log(`Card ${cardIndex + 1} generated successfully`);
       
     } catch (error) {
       console.error(`Failed to render card ${cardIndex + 1}:`, error);
