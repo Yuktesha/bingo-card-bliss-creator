@@ -2,9 +2,10 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useBingo } from '@/contexts/BingoContext';
-import { processFiles } from '@/utils/fileUtils';
-import { FolderOpen, Shuffle, FileDown } from 'lucide-react';
+import { processFiles, parseSpreadsheet } from '@/utils/fileUtils';
+import { FolderOpen, Shuffle, FileDown, Upload } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
+import { ImportDataDialog } from '../ImportDataDialog';
 
 export const ToolbarActions: React.FC = () => {
   const { items, setItems, shuffleItems, selectAllItems, deselectAllItems } = useBingo();
@@ -51,8 +52,8 @@ export const ToolbarActions: React.FC = () => {
   };
 
   return (
-    <>
-      <div className="flex space-x-4 mb-4">
+    <div className="flex justify-between items-center">
+      <div className="flex space-x-4">
         <div>
           <input
             type="file"
@@ -71,6 +72,8 @@ export const ToolbarActions: React.FC = () => {
           </Button>
         </div>
         
+        <ImportDataDialog />
+        
         <Button 
           onClick={shuffleItems}
           className="flex items-center gap-2"
@@ -80,11 +83,9 @@ export const ToolbarActions: React.FC = () => {
         </Button>
       </div>
       
-      <div className="flex space-x-4 mb-4">
+      <div className="flex space-x-4">
         <Button variant="outline" onClick={selectAllItems}>全選</Button>
         <Button variant="outline" onClick={deselectAllItems}>取消全選</Button>
-        
-        <div className="flex-grow"></div>
         
         <Button 
           variant="outline" 
@@ -95,6 +96,6 @@ export const ToolbarActions: React.FC = () => {
           匯出資料
         </Button>
       </div>
-    </>
+    </div>
   );
 };
