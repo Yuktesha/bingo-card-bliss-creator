@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { setupPDFFonts } from '@/utils/bingo/fontUtils';
@@ -8,6 +9,7 @@ export interface PDFGenerationOptions {
   useSystemFonts?: boolean;
   useCJKSupport?: boolean;
   preserveImageAspectRatio?: boolean;
+  rasterText?: boolean; // Add rasterText option
 }
 
 /**
@@ -20,10 +22,11 @@ export async function generateBingoCardPDF(
   options?: PDFGenerationOptions
 ): Promise<Blob> {
   const opts = {
-    highResolution: true,
+    highResolution: false, // Changed default to false
     useSystemFonts: false,
     useCJKSupport: true,
     preserveImageAspectRatio: true,
+    rasterText: true, // Default to raster text for better CJK support
     ...options
   };
 
@@ -33,6 +36,8 @@ export async function generateBingoCardPDF(
   if (selectedItems.length < cellsPerCard) {
     throw new Error(`需要至少 ${cellsPerCard} 個選取的項目來生成賓果卡`);
   }
+  
+  console.log('PDF generation options:', opts);
   
   const doc = new jsPDF({
     orientation: settings.orientation,
@@ -51,10 +56,13 @@ export async function generateBingoCardPDF(
     }
     
     try {
-      if (opts.highResolution) {
-        await renderVectorCard(doc, items, settings, cardIndex);
-      } else {
+      // Use raster rendering for CJK text if requested
+      if (opts.rasterText || !opts.highResolution) {
+        console.log('Using raster rendering for card', cardIndex + 1);
         await renderRasterCard(doc, items, settings, cardIndex);
+      } else {
+        console.log('Using vector rendering for card', cardIndex + 1);
+        await renderVectorCard(doc, items, settings, cardIndex);
       }
     } catch (error) {
       console.error(`Vector rendering failed for card ${cardIndex + 1}, falling back to raster...`, error);
@@ -82,10 +90,11 @@ export async function generateBingoCardPDFAsync(
     onProgress: (current: number, total: number) => {},
     cardsPerPage: 1,
     includeInstructions: false,
-    highResolution: true,
+    highResolution: false, // Changed default to false
     useSystemFonts: false,
     useCJKSupport: true,
     preserveImageAspectRatio: true,
+    rasterText: true, // Default to raster text for better CJK support
     ...options
   };
   
@@ -96,7 +105,8 @@ export async function generateBingoCardPDFAsync(
       highResolution: opts.highResolution,
       useSystemFonts: opts.useSystemFonts,
       useCJKSupport: opts.useCJKSupport,
-      preserveImageAspectRatio: opts.preserveImageAspectRatio
+      preserveImageAspectRatio: opts.preserveImageAspectRatio,
+      rasterText: opts.rasterText
     });
   } catch (error) {
     console.error('PDF generation failed:', error);

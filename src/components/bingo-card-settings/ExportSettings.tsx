@@ -15,9 +15,9 @@ const ExportSettings: React.FC = () => {
   const { settings, setSettings, items } = useBingo();
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [useHighResolution, setUseHighResolution] = useState(true);
+  const [useHighResolution, setUseHighResolution] = useState(false); // Changed default to false
   const [preserveImageAspectRatio, setPreserveImageAspectRatio] = useState(true);
-  const [fontMode, setFontMode] = useState<string>("embedded");
+  const [fontMode, setFontMode] = useState<string>("raster"); // Changed default to "raster"
   const [fontSetupDone, setFontSetupDone] = useState(false);
   
   useEffect(() => {
@@ -67,7 +67,8 @@ const ExportSettings: React.FC = () => {
           highResolution: useHighResolution,
           useSystemFonts: fontMode === "system",
           useCJKSupport: true,
-          preserveImageAspectRatio: preserveImageAspectRatio
+          preserveImageAspectRatio: preserveImageAspectRatio,
+          rasterText: fontMode === "raster" // Add this option to force raster text
         }
       );
       
@@ -135,7 +136,7 @@ const ExportSettings: React.FC = () => {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            如果中文顯示為亂碼，請嘗試使用「點陣圖字體」選項。
+            由於中文顯示為亂碼的問題，建議使用「點陣圖字體」選項。
           </p>
         </div>
         
@@ -162,7 +163,7 @@ const ExportSettings: React.FC = () => {
         </div>
         
         <div className="text-xs text-muted-foreground pb-2">
-          使用向量繪圖可產生更清晰的文字和線條。系統會自動使用支援中文的字體渲染文字，
+          <span className="font-medium text-amber-600">中文顯示提示：</span> 如果PDF中的中文顯示為亂碼，請使用「點陣圖字體」模式並關閉「向量繪圖」選項。這將使用圖像方式渲染文字，解決中文字型相容性問題。
           如果出現亂碼，請嘗試更改字體渲染模式或取消勾選向量繪圖選項。圖片將使用高品質 JPEG 壓縮以平衡檔案大小。
         </div>
         

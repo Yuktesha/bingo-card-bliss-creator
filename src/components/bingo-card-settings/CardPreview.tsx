@@ -27,8 +27,21 @@ const CardPreview: React.FC = () => {
       if (selectedItems.length < cellsNeeded) {
         throw new Error(`需要至少 ${cellsNeeded} 個選取的項目來生成賓果卡`);
       }
+
+      // Create a fake set of items if we don't have enough for testing purposes
+      let previewItems = [...items];
+      if (import.meta.env.DEV && selectedItems.length < cellsNeeded) {
+        console.log('DEV MODE: Creating fake items for preview');
+        const fakeItems = Array.from({ length: cellsNeeded }).map((_, i) => ({
+          id: `fake-${i}`,
+          text: `測試項目 ${i + 1}`,
+          selected: true,
+          image: ''
+        }));
+        previewItems = fakeItems;
+      }
       
-      const dataUrl = await renderBingoCardPreviewAsync(items, settings);
+      const dataUrl = await renderBingoCardPreviewAsync(previewItems, settings);
       setPreviewSrc(dataUrl);
       console.log('Preview generation completed successfully');
     } catch (error: any) {
@@ -48,15 +61,7 @@ const CardPreview: React.FC = () => {
     // Generate preview on component mount and when settings or items change
     const generateInitialPreview = async () => {
       try {
-        const selectedItems = items.filter(item => item.selected);
-        const cellsNeeded = settings.table.rows * settings.table.columns;
-        
-        if (selectedItems.length >= cellsNeeded) {
-          await refreshPreview();
-        } else {
-          setIsLoading(false);
-          setError(`需要至少 ${cellsNeeded} 個選取的項目來生成賓果卡`);
-        }
+        await refreshPreview();
       } catch (e) {
         console.error("Failed to generate preview on mount:", e);
         setIsLoading(false);

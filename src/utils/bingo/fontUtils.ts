@@ -32,7 +32,8 @@ export async function setupPDFFonts(doc?: jsPDF): Promise<boolean> {
     if (doc) {
       // Use UTF-8 encoding and set Traditional Chinese as document language
       try {
-        doc.setLanguage('zh-TW');
+        // Fixed: Removed argument as it's not expected
+        doc.setLanguage();
       } catch (e) {
         console.warn('Could not set document language:', e);
       }
