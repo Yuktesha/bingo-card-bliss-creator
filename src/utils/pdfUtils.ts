@@ -1,8 +1,7 @@
-
 // Utilities for PDF generation
 import jsPDF from 'jspdf';
 import { BingoCardItem, BingoCardSettings } from '@/types';
-import { renderBingoCardPreview } from './bingoCardGenerator';
+import { renderBingoCardPreview } from './bingo';
 
 /**
  * Calculates dimensions in points based on unit and value
@@ -190,7 +189,7 @@ export async function generateBingoCardPDFAsync(
     
     return generateBingoCardPDF(items, settings, numberOfCards);
   } catch (error) {
-    console.error('PDF generation failed:', error);
+    console.log('PDF generation failed:', error);
     throw error;
   }
 }
