@@ -31,29 +31,78 @@ export function generateId(): string {
 }
 
 /**
- * Parse ODS or other spreadsheet format (placeholder)
+ * Parse CSV or JSON data from file
  */
 export function parseSpreadsheet(file: File): Promise<any[]> {
-  return new Promise((resolve) => {
-    // For browser environment, simulating file reading
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      // In a real implementation, we would parse the file content
-      // For now, we'll just return mock data based on the file name
-      const mockData = [];
-      for (let i = 0; i < 10; i++) {
-        mockData.push({
-          id: generateId(),
-          text: `${file.name} - Item ${i + 1}`,
-          image: i % 2 === 0 ? `https://picsum.photos/id/${i + 50}/200/200` : '',
-          selected: true,
-        });
+    
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        let items: BingoCardItem[] = [];
+        
+        if (file.name.endsWith('.json')) {
+          // Parse JSON file
+          const jsonData = JSON.parse(content);
+          items = Array.isArray(jsonData) ? jsonData.map(item => ({
+            id: generateId(),
+            text: item.text || item.name || item.title || `項目 ${items.length + 1}`,
+            image: item.image || '',
+            selected: true
+          })) : [];
+        } else {
+          // Parse CSV/TSV file
+          const lines = content.split(/\r\n|\n/);
+          const headers = lines[0].split(/,|\t/);
+          
+          const textIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('text') || 
+            h.toLowerCase().includes('名稱') || 
+            h.toLowerCase().includes('內容')
+          );
+          
+          const imageIndex = headers.findIndex(h => 
+            h.toLowerCase().includes('image') || 
+            h.toLowerCase().includes('圖片') || 
+            h.toLowerCase().includes('圖像')
+          );
+          
+          for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            
+            const values = lines[i].split(/,|\t/);
+            if (values.length) {
+              items.push({
+                id: generateId(),
+                text: textIndex >= 0 && textIndex < values.length 
+                  ? values[textIndex].trim() 
+                  : `項目 ${i}`,
+                image: imageIndex >= 0 && imageIndex < values.length 
+                  ? values[imageIndex].trim() 
+                  : '',
+                selected: true
+              });
+            }
+          }
+        }
+        
+        resolve(items);
+      } catch (error) {
+        console.error('Error parsing file:', error);
+        reject(error);
       }
-      resolve(mockData);
     };
     
-    // Start reading the file as text
-    reader.readAsText(file);
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    
+    if (file.name.endsWith('.json') || file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+      reader.readAsText(file);
+    } else {
+      reject(new Error('不支援的檔案格式'));
+    }
   });
 }
 

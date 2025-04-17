@@ -167,10 +167,18 @@ export async function generateBingoCardPDFAsync(
   };
   
   try {
+    // For debugging PDF generation
+    console.log('PDF Generation settings:', {
+      items: items.length,
+      selectedItems: items.filter(item => item.selected).length,
+      settings,
+      numberOfCards,
+      unit: settings.unit
+    });
+    
     return generateBingoCardPDF(items, settings, numberOfCards);
   } catch (error) {
     console.error('PDF generation failed:', error);
     throw error;
   }
 }
-

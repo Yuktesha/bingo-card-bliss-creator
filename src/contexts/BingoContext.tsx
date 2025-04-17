@@ -1,9 +1,7 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { BingoCardItem, BingoCardSettings } from '@/types';
 import { getFileNameFromPath, generateId, shuffleArray } from '@/utils/fileUtils';
 import { getPaperSizeDimensions } from '@/utils/pdfUtils';
-import { generateMockBingoItems } from '@/utils/mockData';
 
 // Default settings for bingo card
 const defaultSettings: BingoCardSettings = {
@@ -33,8 +31,8 @@ const defaultSettings: BingoCardSettings = {
   },
   
   table: {
-    rows: 5,
-    columns: 7,
+    rows: 7,
+    columns: 5,
     borderWidth: 1,
     borderColor: '#000000',
     borderStyle: 'solid',
@@ -93,8 +91,8 @@ interface BingoContextType {
 const BingoContext = createContext<BingoContextType | undefined>(undefined);
 
 export const BingoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize with some mock data for demonstration purposes
-  const [items, setItems] = useState<BingoCardItem[]>(generateMockBingoItems(20));
+  // Initialize with empty array instead of mock data
+  const [items, setItems] = useState<BingoCardItem[]>([]);
   const [settings, setSettings] = useState<BingoCardSettings>(defaultSettings);
   const [selectedItem, setSelectedItem] = useState<BingoCardItem | null>(null);
 
