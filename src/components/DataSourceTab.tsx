@@ -7,17 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BingoCardItem } from '@/types';
 import { useBingo } from '@/contexts/BingoContext';
-import { getFileNameFromPath, shuffleArray, processFiles, parseSpreadsheet } from '@/utils/fileUtils';
-import { simulateFolderSelection, simulateSpreadsheetImport } from '@/utils/mockData';
-import { exportToODS, exportToCSV } from '@/utils/exportImportUtils';
+import { getFileNameFromPath, processFiles } from '@/utils/fileUtils';
 import { 
-  ArrowUpDown, 
   FolderOpen, 
-  FileSpreadsheet, 
   Shuffle, 
-  Check, 
-  X, 
-  Download,
+  ArrowUpDown, 
+  X,
   FileDown 
 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
@@ -37,7 +32,6 @@ const DataSourceTab: React.FC = () => {
 
   const [sortField, setSortField] = useState<'text' | 'image' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Handle folder selection
@@ -57,32 +51,6 @@ const DataSourceTab: React.FC = () => {
 
     // Reset input
     if (folderInputRef.current) folderInputRef.current.value = '';
-  };
-
-  // Handle spreadsheet upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    try {
-      // In a real implementation, we would use a proper library to parse spreadsheet files
-      // For now, we'll just use a mock implementation
-      const data = await parseSpreadsheet(file);
-      
-      if (data.length > 0) {
-        setItems(prev => [...prev, ...data]);
-        toast.success(`已成功導入試算表，包含 ${data.length} 筆資料`);
-      } else {
-        toast.warning('試算表中無有效資料');
-      }
-    } catch (error) {
-      console.error('Error parsing spreadsheet:', error);
-      toast.error('試算表解析失敗，請確認檔案格式');
-    }
-
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Handle sort
@@ -118,7 +86,7 @@ const DataSourceTab: React.FC = () => {
   const handleExportData = () => {
     try {
       // Export to JSON format for now
-      const blob = exportToODS(items);
+      const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -153,23 +121,6 @@ const DataSourceTab: React.FC = () => {
           >
             <FolderOpen size={16} />
             選擇資料夾
-          </Button>
-        </div>
-        
-        <div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept=".ods,.xlsx,.csv,.json"
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2"
-          >
-            <FileSpreadsheet size={16} />
-            匯入試算表
           </Button>
         </div>
         
@@ -253,7 +204,7 @@ const DataSourceTab: React.FC = () => {
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-6">
-                      請選擇資料夾或匯入試算表來加載資料
+                      請選擇資料夾來加載資料
                     </TableCell>
                   </TableRow>
                 )}
