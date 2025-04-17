@@ -7,13 +7,13 @@ import CardSettingsTab from '@/components/CardSettingsTab';
 
 const Index = () => {
   return (
-    <BingoProvider>
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <header className="bg-bingo-title text-white p-4">
-          <h1 className="text-2xl font-bold">賓果遊戲卡產生器</h1>
-        </header>
-        
-        <div className="flex-grow p-4">
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <header className="bg-bingo-title text-white p-4">
+        <h1 className="text-2xl font-bold">賓果遊戲卡產生器</h1>
+      </header>
+      
+      <div className="flex-grow p-4">
+        <BingoProvider>
           <Tabs defaultValue="data-source" className="h-full flex flex-col">
             <TabsList className="w-full">
               <TabsTrigger value="data-source" className="flex-1">資料來源</TabsTrigger>
@@ -28,13 +28,13 @@ const Index = () => {
               <CardSettingsTab />
             </TabsContent>
           </Tabs>
-        </div>
-        
-        <footer className="bg-bingo-footer text-white p-2 text-center text-sm">
-          Yuktesha Studio程式規劃 + LovAble撰寫開發
-        </footer>
+        </BingoProvider>
       </div>
-    </BingoProvider>
+      
+      <footer className="bg-bingo-footer text-white p-2 text-center text-sm">
+        Yuktesha Studio程式規劃 + LovAble撰寫開發
+      </footer>
+    </div>
   );
 };
 
